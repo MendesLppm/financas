@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>As Minhas Finanças</title>
+<!-- Fonte Inter (opcional): se estiver offline, usa-se system-ui -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* =========================================================
+   1. TEMA (variáveis de cor) — altere aqui a paleta
+   ========================================================= */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --text: #151922;
+  --muted: #6a7382;
+  --border: #e5e8ed;
+  --primary: #1b2230;        /* botões principais */
+  --on-primary: #ffffff;
+  --accent: #3d5a98;         /* gráfico de evolução */
+  --gain: #15885a;
+  --gain-bg: rgba(21, 136, 90, .10);
+  --loss: #e0533d;
+  --loss-bg: rgba(224, 83, 61, .10);
+  --shadow-sm: 0 1px 2px rgba(20, 28, 45, .05), 0 1px 1px rgba(20, 28, 45, .03);
+  --shadow-md: 0 8px 28px rgba(20, 28, 45, .08);
+  --shadow-lg: 0 18px 50px rgba(20, 28, 45, .18);
+  --radius: 18px;
+  --radius-sm: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1015; --surface: #161a21; --surface-2: #1d222b; --text: #e9ecf1;
+    --muted: #8b94a3; --border: #262c37; --primary: #e9ecf1; --on-primary: #11151b;
+    --accent: #8fb0ea; --gain: #3fcf96; --gain-bg: rgba(63, 207, 150, .12);
+    --loss: #ff7b66; --loss-bg: rgba(255, 123, 102, .12);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4); --shadow-md: 0 8px 28px rgba(0,0,0,.35);
+    --shadow-lg: 0 18px 50px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1015; --surface: #161a21; --surface-2: #1d222b; --text: #e9ecf1;
+  --muted: #8b94a3; --border: #262c37; --primary: #e9ecf1; --on-primary: #11151b;
+  --accent: #8fb0ea; --gain: #3fcf96; --gain-bg: rgba(63, 207, 150, .12);
+  --loss: #ff7b66; --loss-bg: rgba(255, 123, 102, .12);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4); --shadow-md: 0 8px 28px rgba(0,0,0,.35);
+  --shadow-lg: 0 18px 50px rgba(0,0,0,.55);
+}
+
+/* =========================================================
+   2. BASE
+   ========================================================= */
+* { box-sizing: border-box; margin: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  line-height: 1.5; font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  transition: background .25s, color .25s;
+  padding-bottom: 110px;
+}
+body:has(dialog[open]) { overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+
+/* Topo */
+.topo { display: flex; align-items: center; justify-content: space-between; padding: 18px 0 8px; }
+.marca { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -.01em; }
+.logo { width: 32px; height: 32px; border-radius: 10px; background: var(--primary); color: var(--on-primary);
+        display: grid; place-items: center; font-weight: 700; font-size: 16px; }
+.icone { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface);
+         display: inline-grid; place-items: center; color: var(--muted); box-shadow: var(--shadow-sm);
+         transition: color .15s, transform .15s, background .15s; }
+.icone:hover { color: var(--text); }
+.icone:active { transform: scale(.94); }
+.icone svg { width: 18px; height: 18px; }
+.icone.mini { width: 32px; height: 32px; border-radius: 10px; box-shadow: none; border-color: transparent; background: transparent; }
+.icone.mini:hover { background: var(--surface-2); }
+.icone.perigo:hover { color: var(--loss); }
+.acoes-topo { display: flex; gap: 8px; }
+/* Botão de sincronização: o ponto indica o estado */
+.icone.sync { position: relative; }
+.icone.sync::after { content: ''; position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: transparent; border: 2px solid var(--surface); }
+.icone.sync.ok::after { background: var(--gain); }
+.icone.sync.erro::after { background: var(--loss); }
+.icone.sync.offline::after { background: var(--muted); }
+.icone.sync.a svg { animation: pulsar 1.1s ease-in-out infinite; }
+@keyframes pulsar { 50% { opacity: .3; } }
+.caixa-cod { display: flex; gap: 8px; align-items: center; background: var(--surface-2); border-radius: var(--radius-sm); padding: 8px 8px 8px 12px; margin-bottom: 14px; }
+.caixa-cod code { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; word-break: break-all; }
+.caixa-cod .btn { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+.estado-sync { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 4px; }
+.estado-sync i { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+.estado-sync.ok i { background: var(--gain); } .estado-sync.erro i { background: var(--loss); }
+.estado-sync.a i { background: var(--accent); animation: pulsar 1.1s infinite; }
+.pilha { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 6px; }
+.dlg .txt.peq { font-size: 13px; margin-bottom: 12px; }
+
+/* Cartões */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+        box-shadow: var(--shadow-sm); padding: 20px; }
+.card h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+
+/* Saldo (destaque) */
+.hero { margin-top: 8px; padding: 26px 22px 20px; box-shadow: var(--shadow-md); }
+.hero .rotulo { color: var(--muted); font-size: 13px; font-weight: 500; }
+.saldo { font-size: clamp(2.3rem, 9vw, 3.4rem); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin: 4px 0 2px; font-variant-numeric: tabular-nums; transition: color .3s; }
+.saldo.neg { color: var(--loss); }
+.nota { color: var(--muted); font-size: 12.5px; min-height: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.chip.g { background: var(--gain-bg); color: var(--gain); }
+.chip.d { background: var(--loss-bg); color: var(--loss); }
+
+/* Separadores */
+.tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 14px; margin: 18px 0; }
+.tabs button { flex: 1; border: 0; background: transparent; padding: 9px 6px; border-radius: 11px; font-weight: 500; font-size: 14px; color: var(--muted); transition: all .2s; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+.painel { animation: aparecer .3s ease both; }
+.painel[hidden] { display: none; }
+
+.grelha { display: grid; gap: 14px; }
+@media (min-width: 720px) { .grelha.duas { grid-template-columns: 1fr 1fr; } .span2 { grid-column: 1 / -1; } }
+
+/* Resumo mensal */
+.mes-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.mes-nav strong { font-size: 16px; letter-spacing: -.01em; }
+.mes-nav strong::first-letter { text-transform: uppercase; }
+.resumo-tri { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.resumo-tri > div { background: var(--surface-2); border-radius: var(--radius-sm); padding: 12px 12px; min-width: 0; }
+.resumo-tri small { display: block; color: var(--muted); font-size: 12px; }
+.resumo-tri b { display: block; font-size: clamp(.92rem, 3.6vw, 1.1rem); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 480px) { .resumo-tri { grid-template-columns: 1fr; } .resumo-tri > div { display: flex; justify-content: space-between; align-items: baseline; } .resumo-tri b { font-size: 1.05rem; } }
+.pos { color: var(--gain); } .negc { color: var(--loss); }
+
+/* Gráficos */
+.donut-box { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.donut { width: 150px; height: 150px; flex: none; margin: 0 auto; }
+.donut circle { transition: stroke-dasharray .5s ease; }
+.donut text { fill: var(--text); text-anchor: middle; }
+.legenda { flex: 1; min-width: 180px; list-style: none; padding: 0; display: grid; gap: 6px; }
+.legenda li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.legenda i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.legenda span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legenda b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.legenda em { font-style: normal; color: var(--muted); font-size: 12px; width: 36px; text-align: right; }
+.evo { width: 100%; height: auto; display: block; overflow: visible; }
+.evo .eixo { stroke: var(--border); stroke-dasharray: 3 4; }
+.evo .linha { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.evo .area { fill: var(--accent); opacity: .10; }
+.evo .pt { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.evo text { fill: var(--muted); font-size: 10px; text-anchor: middle; }
+.evo text.val { fill: var(--text); font-weight: 600; }
+
+/* Listas */
+.lista { display: grid; gap: 4px; }
+.item { display: flex; align-items: center; gap: 12px; padding: 10px 6px 10px 8px; border-radius: 14px; transition: background .15s; }
+.item:hover { background: var(--surface-2); }
+.item.entra { animation: entrar .4s cubic-bezier(.2,.8,.2,1) both; }
+.item.sai { animation: sair .22s ease forwards; }
+.ic { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; font-size: 18px; flex: none; }
+.ic.g { background: var(--gain-bg); } .ic.d { background: var(--loss-bg); }
+.corpo { flex: 1; min-width: 0; }
+.corpo .t { font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.corpo .m { color: var(--muted); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.valor { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.valor.g { color: var(--gain); } .valor.d { color: var(--loss); }
+.acoes { display: flex; gap: 0; flex: none; }
+.tag { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: var(--surface-2); color: var(--muted); }
+.tag.ok { background: var(--gain-bg); color: var(--gain); }
+.tag.aviso { background: rgba(224,164,58,.16); color: #b57a10; }
+:root[data-theme="dark"] .tag.aviso { color: #e8b75a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tag.aviso { color: #e8b75a; } }
+.vazio { text-align: center; color: var(--muted); padding: 28px 12px; font-size: 14px; }
+
+/* Filtros */
+.filtros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+@media (max-width: 520px) { .filtros { grid-template-columns: 1fr 1fr; } .filtros .f-mes { grid-column: 1 / -1; } }
+.contagem { color: var(--muted); font-size: 12.5px; margin: 2px 4px 10px; }
+
+/* Formulários */
+.campo { display: grid; gap: 6px; margin-bottom: 14px; }
+.campo > label, .campo > .lb { font-size: 13px; font-weight: 550; color: var(--muted); }
+input[type=text], input[type=date], select {
+  width: 100%; padding: 11px 13px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface); font-size: 16px; min-height: 46px; transition: border-color .15s, box-shadow .15s;
+}
+input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.campo.invalido input, .campo.invalido select { border-color: var(--loss); }
+.erro { color: var(--loss); font-size: 12.5px; min-height: 0; }
+.erro:empty { display: none; }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 420px) { .duo { grid-template-columns: 1fr; } }
+.valor-input { position: relative; }
+.valor-input input { padding-right: 36px; font-weight: 600; font-size: 20px; }
+.valor-input span { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); padding: 4px; border-radius: 14px; gap: 4px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { text-align: center; padding: 9px; border-radius: 11px; font-weight: 550; cursor: pointer; color: var(--muted); transition: all .2s; }
+.seg input:checked + label { background: var(--surface); box-shadow: var(--shadow-sm); }
+.seg input[value="ganho"]:checked + label { color: var(--gain); }
+.seg input[value="despesa"]:checked + label { color: var(--loss); }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); }
+
+/* Botões */
+.btn { border: 1px solid var(--border); background: var(--surface); padding: 10px 16px; border-radius: var(--radius-sm); font-weight: 550; min-height: 44px;
+       display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: transform .12s, background .15s, opacity .15s; }
+.btn:hover { background: var(--surface-2); }
+.btn:active { transform: scale(.97); }
+.btn.primario { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+.btn.primario:hover { opacity: .88; background: var(--primary); }
+.btn.perigo { background: var(--loss); color: #fff; border-color: transparent; }
+.btn.perigo:hover { background: var(--loss); opacity: .9; }
+.btn.texto { color: var(--loss); background: transparent; border-color: transparent; }
+.btn svg { width: 17px; height: 17px; }
+.linha-btn { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+.linha-btn .btn { flex: 1; }
+@media (min-width: 520px) { .linha-btn .btn { flex: none; min-width: 120px; } }
+.cab-sec { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.cab-sec h2 { margin: 0; }
+
+/* Botão flutuante */
+.fab { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom));
+       width: 60px; height: 60px; border-radius: 50%; border: 0; background: var(--primary); color: var(--on-primary);
+       box-shadow: var(--shadow-lg); display: grid; place-items: center; z-index: 20; transition: transform .2s; }
+.fab:hover { transform: scale(1.06) rotate(90deg); }
+.fab:active { transform: scale(.94); }
+.fab svg { width: 26px; height: 26px; }
+
+/* Diálogos */
+dialog { border: 0; padding: 0; border-radius: 22px; width: calc(100% - 32px); max-width: 460px; background: var(--surface); color: var(--text);
+         box-shadow: var(--shadow-lg); max-height: 92dvh; overflow: auto; }
+dialog[open] { animation: modal .28s cubic-bezier(.2,.8,.2,1); }
+dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); animation: aparecer .25s; }
+.dlg { padding: 22px; }
+.dlg h3 { font-size: 18px; letter-spacing: -.01em; margin-bottom: 16px; }
+.dlg p.txt { color: var(--muted); margin-bottom: 18px; }
+@media (max-width: 560px) {
+  dialog { margin: auto 0 0; width: 100%; max-width: none; border-radius: 22px 22px 0 0; }
+  dialog[open] { animation: subir .3s cubic-bezier(.2,.8,.2,1); }
+}
+
+/* Toast */
+.toast { position: fixed; left: 50%; bottom: 96px; transform: translate(-50%, 20px); background: var(--primary); color: var(--on-primary);
+         padding: 11px 18px; border-radius: 99px; font-size: 14px; font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0;
+         pointer-events: none; transition: all .3s; z-index: 50; max-width: calc(100% - 32px); text-align: center; }
+.toast.ver { opacity: 1; transform: translate(-50%, 0); }
+.aviso-topo { background: var(--loss-bg); color: var(--loss); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin: 8px 0; }
+
+.dados { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 22px; }
+.dados p { width: 100%; color: var(--muted); font-size: 12.5px; }
+
+/* Animações */
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes entrar { from { opacity: 0; transform: translateY(-10px) scale(.98); background: var(--surface-2); } to { opacity: 1; transform: none; } }
+@keyframes sair { to { opacity: 0; transform: translateX(30px); height: 0; padding-top: 0; padding-bottom: 0; margin: 0; } }
+@keyframes modal { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes subir { from { transform: translateY(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <!-- Topo -->
+  <header class="topo">
+    <div class="marca"><span class="logo" aria-hidden="true">€</span><span>As Minhas Finanças</span></div>
+    <div class="acoes-topo">
+      <button class="icone sync" id="btnSync" type="button" aria-label="Sincronização com o Dropbox" title="Sincronização">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.34 9.5 4.5 4.5 0 0 0 7 19z"/></svg>
+      </button>
+      <button class="icone" id="btnTema" type="button" aria-label="Alternar entre modo claro e escuro" title="Alternar tema"></button>
+    </div>
+  </header>
+  <div id="avisoArmazem" class="aviso-topo" hidden>Não foi possível usar o armazenamento do browser. Os dados só ficam guardados enquanto esta página estiver aberta — use «Exportar» para guardar uma cópia.</div>
+
+  <main>
+    <!-- Saldo atual -->
+    <section class="card hero" aria-labelledby="rotuloSaldo">
+      <p class="rotulo" id="rotuloSaldo">Saldo atual</p>
+      <p class="saldo" id="saldo" aria-live="polite">0,00 €</p>
+      <p class="nota" id="saldoNota"></p>
+      <div class="chips">
+        <span class="chip g" id="chipGanhos">▲ 0,00 €</span>
+        <span class="chip d" id="chipDespesas">▼ 0,00 €</span>
+        <span class="chip" style="background:var(--surface-2);color:var(--muted)">este mês</span>
+      </div>
+    </section>
+
+    <!-- Separadores -->
+    <nav class="tabs" role="tablist" aria-label="Secções">
+      <button role="tab" id="tab-resumo" data-tab="resumo" aria-selected="true" aria-controls="painel-resumo">Resumo</button>
+      <button role="tab" id="tab-movs" data-tab="movs" aria-selected="false" aria-controls="painel-movs">Movimentos</button>
+      <button role="tab" id="tab-auto" data-tab="auto" aria-selected="false" aria-controls="painel-auto">Automáticos</button>
+    </nav>
+
+    <!-- ===== RESUMO ===== -->
+    <section class="painel" id="painel-resumo" role="tabpanel" aria-labelledby="tab-resumo">
+      <div class="grelha duas">
+        <div class="card span2">
+          <div class="mes-nav">
+            <button class="icone" id="mesAnt" type="button" aria-label="Mês anterior">‹</button>
+            <strong id="mesTitulo"></strong>
+            <button class="icone" id="mesSeg" type="button" aria-label="Mês seguinte">›</button>
+          </div>
+          <div class="resumo-tri">
+            <div><small>Ganhos</small><b class="pos" id="rsGanhos"></b></div>
+            <div><small>Despesas</small><b class="negc" id="rsDespesas"></b></div>
+            <div><small>Saldo do mês</small><b id="rsSaldo"></b></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Despesas por categoria</h2>
+          <div id="grafDonut"></div>
+        </div>
+        <div class="card">
+          <h2>Evolução do saldo · 6 meses</h2>
+          <div id="grafEvo"></div>
+        </div>
+        <div class="card span2">
+          <h2>Próximos movimentos automáticos</h2>
+          <div class="lista" id="listaProximos"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MOVIMENTOS ===== -->
+    <section class="painel" id="painel-movs" role="tabpanel" aria-labelledby="tab-movs" hidden>
+      <div class="card">
+        <div class="filtros">
+          <div><label class="vh" for="fTipo">Tipo</label>
+            <select id="fTipo"><option value="">Todos os tipos</option><option value="ganho">Ganhos</option><option value="despesa">Despesas</option></select></div>
+          <div><label class="vh" for="fCat">Categoria</label><select id="fCat"></select></div>
+          <div class="f-mes"><label class="vh" for="fMes">Mês</label><select id="fMes"></select></div>
+        </div>
+        <p class="contagem" id="contagem"></p>
+        <div class="lista" id="listaMovs"></div>
+      </div>
+    </section>
+
+    <!-- ===== AUTOMÁTICOS ===== -->
+    <section class="painel" id="painel-auto" role="tabpanel" aria-labelledby="tab-auto" hidden>
+      <div class="card">
+        <div class="cab-sec">
+          <h2>Regras automáticas</h2>
+          <button class="btn primario" id="btnNovaRegra" type="button">+ Nova regra</button>
+        </div>
+        <div class="lista" id="listaRegras"></div>
+      </div>
+    </section>
+
+    <!-- Dados -->
+    <div class="dados">
+      <p>Os dados ficam guardados neste browser. Exporte uma cópia de segurança sempre que quiser.</p>
+      <button class="btn" id="btnExportar" type="button">Exportar JSON</button>
+      <button class="btn" id="btnImportar" type="button">Importar JSON</button>
+      <button class="btn texto" id="btnApagar" type="button">Apagar tudo</button>
+      <input type="file" id="ficheiro" accept=".json,application/json" hidden>
+    </div>
+  </main>
+</div>
+
+<!-- Botão flutuante -->
+<button class="fab" id="fab" type="button" aria-label="Novo movimento" title="Novo movimento">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<!-- Diálogo: movimento -->
+<dialog id="dlgMov" aria-labelledby="tituloMov">
+  <form class="dlg" id="formMov" novalidate>
+    <h3 id="tituloMov">Novo movimento</h3>
+    <div class="campo"><span class="lb">Tipo</span>
+      <div class="seg">
+        <input type="radio" name="tipo" id="mTipoD" value="despesa" checked><label for="mTipoD">Despesa</label>
+        <input type="radio" name="tipo" id="mTipoG" value="ganho"><label for="mTipoG">Ganho</label>
+      </div></div>
+    <div class="campo" data-campo="valor"><label for="mValor">Valor</label>
+      <div class="valor-input"><input type="text" id="mValor" name="valor" inputmode="decimal" autocomplete="off" placeholder="0,00"><span>€</span></div>
+      <small class="erro"></small></div>
+    <div class="campo" data-campo="desc"><label for="mDesc">Descrição</label>
+      <input type="text" id="mDesc" name="desc" maxlength="80" autocomplete="off" placeholder="Ex.: Supermercado"><small class="erro"></small></div>
+    <div class="duo">
+      <div class="campo" data-campo="cat"><label for="mCat">Categoria</label><select id="mCat" name="cat"></select><small class="erro"></small></div>
+      <div class="campo" data-campo="data"><label for="mData">Data</label><input type="date" id="mData" name="data"><small class="erro"></small></div>
+    </div>
+    <div class="linha-btn">
+      <button type="button" class="btn" data-fechar>Cancelar</button>
+      <button type="submit" class="btn primario">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Diálogo: regra automática -->
+<dialog id="dlgRegra" aria-labelledby="tituloRegra">
+  <form class="dlg" id="formRegra" novalidate>
+    <h3 id="tituloRegra">Nova regra automática</h3>
+    <div class="campo"><span class="lb">Tipo</span>
+      <div class="seg">
+        <input type="radio" name="tipo" id="rTipoD" value="despesa" checked><label for="rTipoD">Despesa</label>
+        <input type="radio" name="tipo" id="rTipoG" value="ganho"><label for="rTipoG">Ganho</label>
+      </div></div>
+    <div class="campo" data-campo="valor"><label for="rValor">Valor</label>
+      <div class="valor-input"><input type="text" id="rValor" name="valor" inputmode="decimal" autocomplete="off" placeholder="0,00"><span>€</span></div>
+      <small class="erro"></small></div>
+    <div class="campo" data-campo="desc"><label for="rDesc">Descrição</label>
+      <input type="text" id="rDesc" name="desc" maxlength="80" autocomplete="off" placeholder="Ex.: Salário, Renda, Netflix"><small class="erro"></small></div>
+    <div class="duo">
+      <div class="campo" data-campo="cat"><label for="rCat">Categoria</label><select id="rCat" name="cat"></select><small class="erro"></small></div>
+      <div class="campo" data-campo="freq"><label for="rFreq">Frequência</label>
+        <select id="rFreq" name="freq">
+          <option value="mensal">Mensal</option><option value="semanal">Semanal</option><option value="diaria">Diária</option>
+          <option value="anual">Anual</option><option value="unica">Data específica</option>
+        </select><small class="erro"></small></div>
+    </div>
+    <div class="duo">
+      <div class="campo" data-campo="inicio"><label for="rInicio" id="lbInicio">Data de início</label><input type="date" id="rInicio" name="inicio"><small class="erro"></small></div>
+      <div class="campo" data-campo="fim" id="campoFim"><label for="rFim">Data de fim (opcional)</label><input type="date" id="rFim" name="fim"><small class="erro"></small></div>
+    </div>
+    <div class="linha-btn">
+      <button type="button" class="btn" data-fechar>Cancelar</button>
+      <button type="submit" class="btn primario">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Diálogo: confirmação -->
+<dialog id="dlgConf" aria-labelledby="confTitulo">
+  <div class="dlg">
+    <h3 id="confTitulo">Confirmar</h3>
+    <p class="txt" id="confTexto"></p>
+    <div class="linha-btn">
+      <button type="button" class="btn" id="confNao">Cancelar</button>
+      <button type="button" class="btn perigo" id="confSim">Eliminar</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Diálogo: sincronização com o Dropbox (conteúdo gerado em renderSync) -->
+<dialog id="dlgSync" aria-labelledby="tituloSync">
+  <div class="dlg">
+    <h3 id="tituloSync">Sincronização com o Dropbox</h3>
+    <div id="syncCorpo"></div>
+    <div class="linha-btn"><button type="button" class="btn" data-fechar>Fechar</button></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+   1. CONFIGURAÇÃO E CONSTANTES
+   ========================================================= */
+const CHAVE_DADOS = 'financas.dados.v1';
+const CHAVE_TEMA  = 'financas.tema.v1';
+const MAX_ITER    = 20000; // limite de segurança ao percorrer ocorrências
+
+// Dropbox: pode deixar vazio e colar a App key na janela de sincronização,
+// ou escrevê-la aqui para não ter de a colar em cada dispositivo.
+const DROPBOX_APP_KEY = '';
+const CHAVE_DBX       = 'financas.dropbox.v1';
+const CHAVE_PKCE      = 'financas.dropbox.pkce';
+const FICHEIRO_DBX    = '/financas.json';   // dentro da pasta da app no Dropbox
+
+// Categorias por tipo (ícone e cor para gráficos) — edite à vontade
+const CATEGORIAS = {
+  ganho: [
+    { nome: 'Salário', icone: '💼' }, { nome: 'Investimentos', icone: '📈' },
+    { nome: 'Presentes', icone: '🎁' }, { nome: 'Outros ganhos', icone: '💶' }
+  ],
+  despesa: [
+    { nome: 'Habitação', icone: '🏠', cor: '#5b7db1' }, { nome: 'Alimentação', icone: '🛒', cor: '#e0a43a' },
+    { nome: 'Transportes', icone: '🚌', cor: '#4fa39d' }, { nome: 'Subscrições', icone: '🔁', cor: '#9b7bc4' },
+    { nome: 'Saúde', icone: '🩺', cor: '#e0687a' }, { nome: 'Lazer', icone: '🎬', cor: '#e48a4a' },
+    { nome: 'Educação', icone: '📚', cor: '#6aa84f' }, { nome: 'Compras', icone: '🛍️', cor: '#c26ba0' },
+    { nome: 'Outras despesas', icone: '🧾', cor: '#8a93a1' }
+  ]
+};
+const TODAS_CATS = [...CATEGORIAS.ganho, ...CATEGORIAS.despesa];
+const infoCat = nome => TODAS_CATS.find(c => c.nome === nome) || { nome, icone: '•', cor: '#8a93a1' };
+const catPadrao = tipo => (tipo === 'ganho' ? 'Outros ganhos' : 'Outras despesas');
+
+const FREQUENCIAS = { diaria: 'Diária', semanal: 'Semanal', mensal: 'Mensal', anual: 'Anual', unica: 'Data específica' };
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const MESES_ABREV = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+const ICONES = {
+  lua: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+  sol: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  editar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  lixo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg>',
+  pausa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 5v14M16 5v14"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 4l13 8-13 8z"/></svg>'
+};
+
+/* =========================================================
+   2. UTILITÁRIOS (datas, dinheiro, texto)
+   ========================================================= */
+const $  = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const esperar = ms => new Promise(r => setTimeout(r, ms));
+const reduzMovimento = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const novoId = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+
+// ---- Datas (guardadas como "AAAA-MM-DD", no fuso local) ----
+const pad = n => String(n).padStart(2, '0');
+const paraISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const deISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const hoje = () => paraISO(new Date());
+const ontem = () => { const d = new Date(); d.setDate(d.getDate() - 1); return paraISO(d); };
+function dataValida(s) {
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const ano = Number(s.slice(0, 4));
+  return paraISO(deISO(s)) === s && ano >= 1900 && ano <= 2200;
+}
+const fmtData = s => { const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+const mesDe = s => s.slice(0, 7);                         // "AAAA-MM"
+const nomeMes = ym => { const [y, m] = ym.split('-').map(Number); return `${MESES[m - 1]} de ${y}`; };
+const somaMeses = (ym, n) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; };
+
+// ---- Dinheiro (formato português: 1 234,56 €) ----
+function fmtEUR(v, comSinal = false) {
+  const neg = v < 0;
+  const c = Math.round(Math.abs(v) * 100);
+  const inteiro = String(Math.floor(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const dec = String(c % 100).padStart(2, '0');
+  return (neg ? '−' : comSinal ? '+' : '') + inteiro + ',' + dec + ' €';
+}
+const fmtNumInput = v => v.toFixed(2).replace('.', ',');
+const arred = v => Math.round(v * 100) / 100;
+const cents = v => Math.round(v * 100);
+
+// Aceita "12,5", "12.50", "1 234,56", "1.234,56", "€ 10"…  Devolve NaN se inválido.
+function lerValor(txt) {
+  let s = String(txt).replace(/[€\s ]/g, '');
+  if (!s || !/^[\d.,]+$/.test(s)) return NaN;
+  const temV = s.includes(','), temP = s.includes('.');
+  if (temV && temP) {
+    const dec = s.lastIndexOf(',') > s.lastIndexOf('.') ? ',' : '.';
+    const mil = dec === ',' ? '.' : ',';
+    s = s.split(mil).join('').replace(dec, '.');
+  } else if (temV) {
+    if ((s.match(/,/g) || []).length > 1) s = s.replace(/,/g, '');
+    else s = s.replace(',', '.');
+  } else if (temP) {
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');  // 1.234 → milhares
+  }
+  const n = Number(s);
+  return isFinite(n) ? n : NaN;
+}
+
+/* =========================================================
+   3. ESTADO E PERSISTÊNCIA (localStorage com try/catch)
+   ========================================================= */
+let armazemOk = true;
+// movs/regras têm "alt" (data da última alteração, em ms) para a fusão entre dispositivos;
+// "apagados" regista { id: data da eliminação } para que um item apagado não volte a aparecer.
+let estado = { movs: [], regras: [], apagados: {} };
+const agora = () => Date.now();
+
+function lerArmazem(chave) { try { return localStorage.getItem(chave); } catch (e) { armazemOk = false; return null; } }
+function escreverArmazem(chave, valor) { try { localStorage.setItem(chave, valor); return true; } catch (e) { armazemOk = false; return false; } }
+
+// Valida e limpa dados (usado ao carregar e ao importar). Devolve { estado, ignorados }
+function normalizar(bruto) {
+  let ignorados = 0;
+  const ids = new Set();
+  const idUnico = v => { let id = String(v || '').replace(/[^\w-]/g, '') || novoId(); while (ids.has(id)) id = novoId(); ids.add(id); return id; };
+  const tipoOk = t => t === 'ganho' || t === 'despesa';
+  const movs = [], regras = [];
+
+  for (const m of (Array.isArray(bruto && bruto.movs) ? bruto.movs : [])) {
+    const v = Number(m && m.valor);
+    if (!m || !tipoOk(m.tipo) || !(v > 0) || !isFinite(v) || typeof m.desc !== 'string' || !m.desc.trim() || !dataValida(m.data)) { ignorados++; continue; }
+    movs.push({ id: idUnico(m.id), tipo: m.tipo, valor: arred(v), desc: m.desc.trim().slice(0, 80),
+      cat: String(m.cat || catPadrao(m.tipo)).slice(0, 40), data: m.data,
+      regraId: m.regraId ? String(m.regraId) : null, ocorrencia: dataValida(m.ocorrencia) ? m.ocorrencia : null,
+      alt: Number(m.alt) > 0 ? Number(m.alt) : 0 });
+  }
+  for (const r of (Array.isArray(bruto && bruto.regras) ? bruto.regras : [])) {
+    const v = Number(r && r.valor);
+    if (!r || !tipoOk(r.tipo) || !(v > 0) || !isFinite(v) || typeof r.desc !== 'string' || !r.desc.trim()
+        || !FREQUENCIAS[r.freq] || !dataValida(r.inicio) || (r.fim && !dataValida(r.fim))) { ignorados++; continue; }
+    regras.push({ id: idUnico(r.id), tipo: r.tipo, valor: arred(v), desc: r.desc.trim().slice(0, 80),
+      cat: String(r.cat || catPadrao(r.tipo)).slice(0, 40), freq: r.freq, inicio: r.inicio,
+      fim: r.freq === 'unica' ? null : (r.fim || null), ativa: r.ativa !== false,
+      processadoAte: dataValida(r.processadoAte) ? r.processadoAte : null,
+      alt: Number(r.alt) > 0 ? Number(r.alt) : 0 });
+  }
+  const apagados = {};
+  const ap = bruto && typeof bruto.apagados === 'object' && bruto.apagados ? bruto.apagados : {};
+  for (const [id, t] of Object.entries(ap)) {
+    const limpo = String(id).replace(/[^\w-]/g, '');
+    if (limpo && Number(t) > 0) apagados[limpo] = Number(t);
+  }
+  return { estado: { movs, regras, apagados }, ignorados };
+}
+
+function carregar() {
+  const raw = lerArmazem(CHAVE_DADOS);
+  if (raw) { try { estado = normalizar(JSON.parse(raw)).estado; } catch (e) { console.warn('Dados guardados inválidos', e); } }
+}
+// Grava só neste browser
+function guardarLocal() {
+  const ok = escreverArmazem(CHAVE_DADOS, JSON.stringify(estado));
+  $('#avisoArmazem').hidden = ok && armazemOk;
+}
+// Grava e agenda a sincronização (usar depois de cada alteração feita pelo utilizador)
+function guardar() {
+  guardarLocal();
+  agendarSync();
+}
+
+/* =========================================================
+   4. MOVIMENTOS AUTOMÁTICOS (recorrência)
+   ========================================================= */
+// Data da ocorrência n (0, 1, 2…) de uma regra, calculada sempre a partir do início
+// (assim o dia 31 volta a ser 31 nos meses que o permitem e fica no último dia nos outros).
+function dataOcorrencia(r, n) {
+  const b = deISO(r.inicio), y = b.getFullYear(), m = b.getMonth(), d = b.getDate();
+  const ajustar = (ano, mes) => { // dia d limitado ao último dia do mês
+    const ultimo = new Date(ano, mes + 1, 0).getDate();
+    return paraISO(new Date(ano, mes, Math.min(d, ultimo)));
+  };
+  switch (r.freq) {
+    case 'diaria':  return paraISO(new Date(y, m, d + n));
+    case 'semanal': return paraISO(new Date(y, m, d + 7 * n));
+    case 'mensal':  { const t = new Date(y, m + n, 1); return ajustar(t.getFullYear(), t.getMonth()); }
+    case 'anual':   return ajustar(y + n, m);
+    default:        return n === 0 ? r.inicio : null;   // 'unica'
+  }
+}
+function* ocorrencias(r) {
+  for (let n = 0; n < MAX_ITER; n++) {
+    const o = dataOcorrencia(r, n);
+    if (!o || (r.fim && o > r.fim)) return;
+    yield o;
+  }
+}
+function proximaOcorrencia(r) {
+  const h = hoje();
+  for (const o of ocorrencias(r)) if (o > h) return o;
+  return null;
+}
+function estadoRegra(r) {
+  if (!r.ativa) return 'pausada';
+  return proximaOcorrencia(r) ? 'ativa' : 'terminada';
+}
+
+// Lança no histórico todas as ocorrências até hoje que ainda não foram lançadas.
+// "processadoAte" + verificação (regraId, ocorrencia) garantem que não há duplicados,
+// mesmo que o utilizador apague um movimento gerado.
+function aplicarRecorrentes() {
+  const h = hoje();
+  let criados = 0;
+  for (const r of estado.regras) {
+    if (!r.ativa) continue;
+    for (const o of ocorrencias(r)) {
+      if (o > h) break;
+      if (r.processadoAte && o <= r.processadoAte) continue;
+      // id fixo (regra + data): se dois dispositivos lançarem a mesma ocorrência, a fusão junta-as numa só.
+      // alt = 0 porque é o estado "original"; uma eliminação noutro dispositivo prevalece sempre.
+      const id = `auto-${r.id}-${o}`;
+      const existe = estado.apagados[id] || estado.movs.some(m => m.id === id || (m.regraId === r.id && m.ocorrencia === o));
+      if (!existe) {
+        estado.movs.push({ id, tipo: r.tipo, valor: r.valor, desc: r.desc, cat: r.cat, data: o, regraId: r.id, ocorrencia: o, alt: 0 });
+        criados++;
+      }
+      r.processadoAte = o;
+    }
+  }
+  return criados;   // quem chama grava
+}
+
+/* =========================================================
+   5. CÁLCULOS
+   ========================================================= */
+const saldoAte = data => estado.movs.reduce((s, m) => m.data <= data ? s + (m.tipo === 'ganho' ? 1 : -1) * cents(m.valor) : s, 0) / 100;
+function resumoMes(ym) {
+  let g = 0, d = 0;
+  for (const m of estado.movs) if (mesDe(m.data) === ym) (m.tipo === 'ganho' ? (g += cents(m.valor)) : (d += cents(m.valor)));
+  return { ganhos: g / 100, despesas: d / 100, saldo: (g - d) / 100 };
+}
+function ordenarMovs(lista) {
+  return [...lista].sort((a, b) => b.data.localeCompare(a.data) || 0);
+}
+
+/* =========================================================
+   6. INTERFACE — utilitários
+   ========================================================= */
+let tToast;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('ver');
+  clearTimeout(tToast); tToast = setTimeout(() => t.classList.remove('ver'), 2800);
+}
+
+// Confirmação em diálogo próprio. Devolve Promise<boolean>.
+function confirmar(titulo, texto, rotulo = 'Eliminar') {
+  return new Promise(resolve => {
+    const dlg = $('#dlgConf');
+    $('#confTitulo').textContent = titulo; $('#confTexto').textContent = texto; $('#confSim').textContent = rotulo;
+    const fim = r => { dlg.close(); dlg.removeEventListener('cancel', cancel); $('#confSim').onclick = $('#confNao').onclick = null; resolve(r); };
+    const cancel = e => { e.preventDefault(); fim(false); };
+    dlg.addEventListener('cancel', cancel);
+    $('#confSim').onclick = () => fim(true);
+    $('#confNao').onclick = () => fim(false);
+    dlg.showModal();
+  });
+}
+
+// Fecha diálogos ao clicar no fundo
+$$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d && d.id !== 'dlgConf') d.close(); }));
+$$('[data-fechar]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+
+function preencherCategorias(select, tipo, atual) {
+  const lista = CATEGORIAS[tipo];
+  select.innerHTML = lista.map(c => `<option value="${esc(c.nome)}">${c.icone} ${esc(c.nome)}</option>`).join('');
+  // categoria desconhecida (ex.: importada) mantém-se disponível
+  if (atual && !lista.some(c => c.nome === atual)) select.insertAdjacentHTML('beforeend', `<option value="${esc(atual)}">${esc(atual)}</option>`);
+  select.value = atual && [...select.options].some(o => o.value === atual) ? atual : catPadrao(tipo);
+}
+function mostrarErros(form, erros) {
+  $$('.campo[data-campo]', form).forEach(c => {
+    const msg = erros[c.dataset.campo];
+    c.classList.toggle('invalido', !!msg);
+    $('.erro', c).textContent = msg || '';
+  });
+  const primeiro = $('.campo.invalido input, .campo.invalido select', form);
+  if (primeiro) primeiro.focus();
+}
+// Valida os campos comuns (valor, descrição, categoria)
+function validarBase(f, erros) {
+  const valor = lerValor(f.elements.valor.value);
+  if (!(valor > 0)) erros.valor = 'Introduza um valor positivo (ex.: 12,50).';
+  else if (valor > 999999999) erros.valor = 'O valor é demasiado grande.';
+  const desc = f.elements.desc.value.trim();
+  if (!desc) erros.desc = 'Escreva uma descrição.';
+  const cat = f.elements.cat.value;
+  if (!cat) erros.cat = 'Escolha uma categoria.';
+  return { valor: arred(valor), desc, cat, tipo: f.elements.tipo.value };
+}
+
+/* =========================================================
+   7. RENDERIZAÇÃO
+   ========================================================= */
+let mesResumo = mesDe(hoje());
+let novoItemId = null;       // para animar o último item adicionado
+let saldoMostrado = 0, idAnim = 0;
+
+function animarSaldo(alvo) {
+  const el = $('#saldo');
+  cancelAnimationFrame(idAnim);
+  const ini = saldoMostrado, t0 = performance.now(), dur = reduzMovimento ? 0 : 450;
+  const passo = t => {
+    const p = dur ? Math.min(1, (t - t0) / dur) : 1;
+    saldoMostrado = ini + (alvo - ini) * (1 - Math.pow(1 - p, 3));
+    el.textContent = fmtEUR(saldoMostrado);
+    if (p < 1) idAnim = requestAnimationFrame(passo); else { saldoMostrado = alvo; el.textContent = fmtEUR(alvo); }
+  };
+  idAnim = requestAnimationFrame(passo);
+  el.classList.toggle('neg', alvo < 0);
+}
+
+function renderHero() {
+  const h = hoje();
+  const saldo = saldoAte(h);
+  animarSaldo(saldo);
+  const futuros = estado.movs.filter(m => m.data > h).length;
+  $('#saldoNota').textContent = `A ${fmtData(h)}` + (futuros ? ` · ${futuros} movimento${futuros > 1 ? 's agendados não incluídos' : ' agendado não incluído'}` : '');
+  const r = resumoMes(mesDe(h));
+  $('#chipGanhos').textContent = '▲ ' + fmtEUR(r.ganhos);
+  $('#chipDespesas').textContent = '▼ ' + fmtEUR(r.despesas);
+}
+
+function renderResumo() {
+  $('#mesTitulo').textContent = nomeMes(mesResumo);
+  const r = resumoMes(mesResumo);
+  $('#rsGanhos').textContent = fmtEUR(r.ganhos);
+  $('#rsDespesas').textContent = fmtEUR(r.despesas);
+  const s = $('#rsSaldo'); s.textContent = fmtEUR(r.saldo, true);
+  s.className = r.saldo > 0 ? 'pos' : r.saldo < 0 ? 'negc' : '';
+  renderDonut(); renderEvolucao(); renderProximos();
+}
+
+// Gráfico circular: despesas do mês por categoria (SVG puro)
+function renderDonut() {
+  const por = {};
+  for (const m of estado.movs) if (m.tipo === 'despesa' && mesDe(m.data) === mesResumo) por[m.cat] = (por[m.cat] || 0) + cents(m.valor);
+  const itens = Object.entries(por).sort((a, b) => b[1] - a[1]);
+  const total = itens.reduce((s, [, c]) => s + c, 0);
+  const alvo = $('#grafDonut');
+  if (!total) { alvo.innerHTML = '<p class="vazio">Sem despesas neste mês.</p>'; return; }
+  let acum = 0;
+  const arcos = itens.map(([cat, c]) => {
+    const pct = c / total * 100;
+    const svg = `<circle r="15.9155" cx="21" cy="21" fill="none" stroke="${infoCat(cat).cor}" stroke-width="6" stroke-dasharray="${pct.toFixed(3)} ${(100 - pct).toFixed(3)}" stroke-dashoffset="${(25 - acum).toFixed(3)}"><title>${esc(cat)}: ${fmtEUR(c / 100)}</title></circle>`;
+    acum += pct; return svg;
+  }).join('');
+  const legenda = itens.map(([cat, c]) => `<li><i style="background:${infoCat(cat).cor}"></i><span>${esc(cat)}</span><b>${fmtEUR(c / 100)}</b><em>${Math.round(c / total * 100)}%</em></li>`).join('');
+  alvo.innerHTML = `<div class="donut-box">
+    <svg class="donut" viewBox="0 0 42 42" role="img" aria-label="Despesas por categoria">
+      <circle r="15.9155" cx="21" cy="21" fill="none" stroke="var(--surface-2)" stroke-width="6"/>${arcos}
+      <text x="21" y="20.5" font-size="3" style="fill:var(--muted)">Total</text>
+      <text x="21" y="25.5" font-size="3.6" font-weight="700">${fmtEUR(total / 100)}</text>
+    </svg><ul class="legenda">${legenda}</ul></div>`;
+}
+
+// Gráfico de linha: saldo no fim de cada um dos últimos 6 meses (SVG puro)
+function renderEvolucao() {
+  const h = hoje(), base = new Date(), pontos = [];
+  for (let k = 5; k >= 0; k--) {
+    const d = new Date(base.getFullYear(), base.getMonth() - k, 1);
+    const fimMes = paraISO(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+    pontos.push({ rotulo: MESES_ABREV[d.getMonth()], v: saldoAte(fimMes > h ? h : fimMes) });
+  }
+  if (!estado.movs.length) { $('#grafEvo').innerHTML = '<p class="vazio">Adicione movimentos para ver a evolução.</p>'; return; }
+  const W = 320, H = 170, pl = 14, pr = 14, pt = 26, pb = 26;
+  let min = Math.min(0, ...pontos.map(p => p.v)), max = Math.max(0, ...pontos.map(p => p.v));
+  if (max === min) max = min + 1;
+  const x = i => pl + i * (W - pl - pr) / (pontos.length - 1);
+  const y = v => pt + (max - v) / (max - min) * (H - pt - pb);
+  const linha = pontos.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(' ');
+  const area = `${linha} L${x(pontos.length - 1).toFixed(1)} ${y(0).toFixed(1)} L${x(0).toFixed(1)} ${y(0).toFixed(1)} Z`;
+  const circulos = pontos.map((p, i) => `<circle class="pt" cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.5"><title>${p.rotulo}: ${fmtEUR(p.v)}</title></circle>`).join('');
+  const rot = pontos.map((p, i) => `<text x="${x(i).toFixed(1)}" y="${H - 8}">${p.rotulo}</text>`).join('');
+  const ult = pontos[pontos.length - 1];
+  $('#grafEvo').innerHTML = `<svg class="evo" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução do saldo nos últimos 6 meses">
+    <line class="eixo" x1="${pl}" x2="${W - pr}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>
+    <path class="area" d="${area}"/><path class="linha" d="${linha}"/>${circulos}${rot}
+    <text class="val" x="${Math.min(W - 40, Math.max(40, x(pontos.length - 1))).toFixed(1)}" y="${(y(ult.v) - 10).toFixed(1)}">${fmtEUR(ult.v)}</text></svg>`;
+}
+
+function itemProximo(r, data) {
+  const c = infoCat(r.cat), cls = r.tipo === 'ganho' ? 'g' : 'd';
+  return `<div class="item"><div class="ic ${cls}">${c.icone}</div>
+    <div class="corpo"><div class="t">${esc(r.desc)}</div><div class="m"><span>${fmtData(data)}</span><span>${FREQUENCIAS[r.freq]}</span></div></div>
+    <div class="valor ${cls}">${r.tipo === 'ganho' ? '+' : '−'}${fmtEUR(r.valor).replace('−', '')}</div></div>`;
+}
+function renderProximos() {
+  const h = hoje(), limite = new Date(); limite.setDate(limite.getDate() + 90);
+  const lim = paraISO(limite), lista = [];
+  for (const r of estado.regras) {
+    if (!r.ativa) continue;
+    let n = 0;
+    for (const o of ocorrencias(r)) {
+      if (o > lim || n >= 3) break;
+      if (o > h) { lista.push({ r, data: o }); n++; }
+    }
+  }
+  lista.sort((a, b) => a.data.localeCompare(b.data));
+  $('#listaProximos').innerHTML = lista.length
+    ? lista.slice(0, 8).map(p => itemProximo(p.r, p.data)).join('')
+    : '<p class="vazio">Não há movimentos automáticos previstos nos próximos 90 dias.</p>';
+}
+
+// --- Filtros e lista de movimentos ---
+function renderFiltros() {
+  const selCat = $('#fCat'), selMes = $('#fMes');
+  const catAtual = selCat.value, mesAtual = selMes.value;
+  selCat.innerHTML = '<option value="">Todas as categorias</option>' +
+    TODAS_CATS.filter((c, i, a) => a.findIndex(x => x.nome === c.nome) === i).map(c => `<option value="${esc(c.nome)}">${c.icone} ${esc(c.nome)}</option>`).join('');
+  const extra = [...new Set(estado.movs.map(m => m.cat))].filter(n => !TODAS_CATS.some(c => c.nome === n));
+  extra.forEach(n => selCat.insertAdjacentHTML('beforeend', `<option value="${esc(n)}">${esc(n)}</option>`));
+  selCat.value = [...selCat.options].some(o => o.value === catAtual) ? catAtual : '';
+
+  const meses = [...new Set([...estado.movs.map(m => mesDe(m.data)), mesDe(hoje())])].sort().reverse();
+  selMes.innerHTML = '<option value="">Todos os meses</option>' + meses.map(m => `<option value="${m}">${nomeMes(m)}</option>`).join('');
+  selMes.value = meses.includes(mesAtual) ? mesAtual : '';
+}
+
+function htmlMov(m) {
+  const c = infoCat(m.cat), cls = m.tipo === 'ganho' ? 'g' : 'd', h = hoje();
+  const tags = (m.regraId ? '<span class="tag ok">Automático</span>' : '') + (m.data > h ? '<span class="tag aviso">Agendado</span>' : '');
+  return `<div class="item${m.id === novoItemId ? ' entra' : ''}" data-mov="${m.id}">
+    <div class="ic ${cls}">${c.icone}</div>
+    <div class="corpo"><div class="t">${esc(m.desc)}</div>
+      <div class="m"><span>${esc(m.cat)}</span><span>·</span><span>${fmtData(m.data)}</span>${tags}</div></div>
+    <div class="valor ${cls}">${m.tipo === 'ganho' ? '+' : '−'}${fmtEUR(m.valor).replace('−', '')}</div>
+    <div class="acoes">
+      <button class="icone mini" type="button" data-acao="editar" aria-label="Editar movimento ${esc(m.desc)}">${ICONES.editar}</button>
+      <button class="icone mini perigo" type="button" data-acao="remover" aria-label="Remover movimento ${esc(m.desc)}">${ICONES.lixo}</button>
+    </div></div>`;
+}
+function renderLista() {
+  const tipo = $('#fTipo').value, cat = $('#fCat').value, mes = $('#fMes').value;
+  const lista = ordenarMovs(estado.movs.filter(m => (!tipo || m.tipo === tipo) && (!cat || m.cat === cat) && (!mes || mesDe(m.data) === mes)));
+  $('#contagem').textContent = `${lista.length} movimento${lista.length === 1 ? '' : 's'}`;
+  $('#listaMovs').innerHTML = lista.length ? lista.map(htmlMov).join('')
+    : `<p class="vazio">${estado.movs.length ? 'Nenhum movimento corresponde aos filtros.' : 'Ainda não tem movimentos. Toque em «+» para adicionar o primeiro.'}</p>`;
+  novoItemId = null;
+}
+
+// --- Regras automáticas ---
+function renderRegras() {
+  const ordem = { ativa: 0, pausada: 1, terminada: 2 };
+  const lista = [...estado.regras].sort((a, b) => ordem[estadoRegra(a)] - ordem[estadoRegra(b)] || a.desc.localeCompare(b.desc, 'pt'));
+  $('#listaRegras').innerHTML = lista.length ? lista.map(r => {
+    const c = infoCat(r.cat), cls = r.tipo === 'ganho' ? 'g' : 'd', st = estadoRegra(r), prox = proximaOcorrencia(r);
+    const quando = r.freq === 'unica' ? `Em ${fmtData(r.inicio)}` : `${FREQUENCIAS[r.freq]} · desde ${fmtData(r.inicio)}${r.fim ? ' até ' + fmtData(r.fim) : ''}`;
+    const tag = st === 'ativa' ? '<span class="tag ok">Ativa</span>' : st === 'pausada' ? '<span class="tag aviso">Pausada</span>' : '<span class="tag">Terminada</span>';
+    return `<div class="item" data-regra="${r.id}" style="${st !== 'ativa' ? 'opacity:.72' : ''}">
+      <div class="ic ${cls}">${c.icone}</div>
+      <div class="corpo"><div class="t">${esc(r.desc)}</div>
+        <div class="m"><span>${quando}</span>${tag}</div>
+        <div class="m">${prox && r.ativa ? `<span>Próximo: ${fmtData(prox)}</span>` : ''}</div></div>
+      <div class="valor ${cls}">${r.tipo === 'ganho' ? '+' : '−'}${fmtEUR(r.valor).replace('−', '')}</div>
+      <div class="acoes">
+        <button class="icone mini" type="button" data-acao="pausar" aria-label="${r.ativa ? 'Pausar' : 'Retomar'} regra ${esc(r.desc)}" title="${r.ativa ? 'Pausar' : 'Retomar'}">${r.ativa ? ICONES.pausa : ICONES.play}</button>
+        <button class="icone mini" type="button" data-acao="editar" aria-label="Editar regra ${esc(r.desc)}">${ICONES.editar}</button>
+        <button class="icone mini perigo" type="button" data-acao="remover" aria-label="Eliminar regra ${esc(r.desc)}">${ICONES.lixo}</button>
+      </div></div>`;
+  }).join('') : '<p class="vazio">Sem regras. Crie uma para lançar automaticamente salários, rendas ou subscrições.</p>';
+}
+
+function renderTudo() { renderHero(); renderResumo(); renderFiltros(); renderLista(); renderRegras(); }
+
+/* =========================================================
+   8. MOVIMENTOS — adicionar / editar / remover
+   ========================================================= */
+let editMovId = null;
+const formMov = $('#formMov');
+
+function abrirMov(id) {
+  editMovId = id || null;
+  const m = id ? estado.movs.find(x => x.id === id) : null;
+  $('#tituloMov').textContent = m ? 'Editar movimento' : 'Novo movimento';
+  formMov.elements.tipo.value = m ? m.tipo : 'despesa';
+  preencherCategorias(formMov.elements.cat, formMov.elements.tipo.value, m && m.cat);
+  formMov.elements.valor.value = m ? fmtNumInput(m.valor) : '';
+  formMov.elements.desc.value = m ? m.desc : '';
+  formMov.elements.data.value = m ? m.data : hoje();
+  mostrarErros(formMov, {});
+  $('#dlgMov').showModal();
+  if (!m) formMov.elements.valor.focus();
+}
+$$('input[name=tipo]', formMov).forEach(r => r.addEventListener('change', () => preencherCategorias(formMov.elements.cat, formMov.elements.tipo.value)));
+
+formMov.addEventListener('submit', e => {
+  e.preventDefault();
+  const erros = {};
+  const dados = validarBase(formMov, erros);
+  const data = formMov.elements.data.value;
+  if (!dataValida(data)) erros.data = 'Escolha uma data válida.';
+  if (Object.keys(erros).length) return mostrarErros(formMov, erros);
+  dados.data = data;
+
+  if (editMovId) {
+    const m = estado.movs.find(x => x.id === editMovId);
+    if (m) Object.assign(m, dados, { alt: agora() });
+    novoItemId = editMovId;
+    toast('Movimento atualizado');
+  } else {
+    const id = novoId();
+    estado.movs.push({ id, ...dados, regraId: null, ocorrencia: null, alt: agora() });
+    novoItemId = id;
+    toast(dados.tipo === 'ganho' ? 'Ganho adicionado' : 'Despesa adicionada');
+  }
+  guardar(); $('#dlgMov').close();
+  // se o filtro atual esconderia o item, limpa-o para o utilizador ver o resultado
+  if ($('#fTipo').value && $('#fTipo').value !== dados.tipo) $('#fTipo').value = '';
+  if ($('#fMes').value && $('#fMes').value !== mesDe(data)) $('#fMes').value = '';
+  if ($('#fCat').value && $('#fCat').value !== dados.cat) $('#fCat').value = '';
+  renderTudo();
+});
+
+$('#listaMovs').addEventListener('click', async e => {
+  const b = e.target.closest('[data-acao]'); if (!b) return;
+  const el = b.closest('[data-mov]'), id = el.dataset.mov;
+  if (b.dataset.acao === 'editar') return abrirMov(id);
+  const m = estado.movs.find(x => x.id === id); if (!m) return;
+  if (!await confirmar('Remover movimento?', `«${m.desc}» de ${fmtEUR(m.valor).replace('−', '')} (${fmtData(m.data)}) será removido do histórico.`, 'Remover')) return;
+  el.classList.add('sai');
+  if (!reduzMovimento) await esperar(230);
+  estado.movs = estado.movs.filter(x => x.id !== id);
+  estado.apagados[id] = agora();
+  guardar(); renderTudo(); toast('Movimento removido');
+});
+
+/* =========================================================
+   9. REGRAS — criar / editar / pausar / eliminar
+   ========================================================= */
+let editRegraId = null;
+const formRegra = $('#formRegra');
+
+function atualizarCamposFreq() {
+  const unica = formRegra.elements.freq.value === 'unica';
+  $('#campoFim').hidden = unica;
+  $('#lbInicio').textContent = unica ? 'Data' : 'Data de início';
+}
+formRegra.elements.freq.addEventListener('change', atualizarCamposFreq);
+$$('input[name=tipo]', formRegra).forEach(r => r.addEventListener('change', () => preencherCategorias(formRegra.elements.cat, formRegra.elements.tipo.value)));
+
+function abrirRegra(id) {
+  editRegraId = id || null;
+  const r = id ? estado.regras.find(x => x.id === id) : null;
+  $('#tituloRegra').textContent = r ? 'Editar regra' : 'Nova regra automática';
+  formRegra.elements.tipo.value = r ? r.tipo : 'despesa';
+  preencherCategorias(formRegra.elements.cat, formRegra.elements.tipo.value, r && r.cat);
+  formRegra.elements.valor.value = r ? fmtNumInput(r.valor) : '';
+  formRegra.elements.desc.value = r ? r.desc : '';
+  formRegra.elements.freq.value = r ? r.freq : 'mensal';
+  formRegra.elements.inicio.value = r ? r.inicio : hoje();
+  formRegra.elements.fim.value = r && r.fim ? r.fim : '';
+  atualizarCamposFreq(); mostrarErros(formRegra, {});
+  $('#dlgRegra').showModal();
+  if (!r) formRegra.elements.desc.focus();
+}
+
+formRegra.addEventListener('submit', e => {
+  e.preventDefault();
+  const erros = {};
+  const dados = validarBase(formRegra, erros);
+  const freq = formRegra.elements.freq.value, inicio = formRegra.elements.inicio.value, fimTxt = formRegra.elements.fim.value;
+  if (!FREQUENCIAS[freq]) erros.freq = 'Escolha a frequência.';
+  if (!dataValida(inicio)) erros.inicio = 'Escolha uma data válida.';
+  let fim = null;
+  if (freq !== 'unica' && fimTxt) {
+    if (!dataValida(fimTxt)) erros.fim = 'Data de fim inválida.';
+    else if (dataValida(inicio) && fimTxt < inicio) erros.fim = 'O fim tem de ser igual ou posterior ao início.';
+    else fim = fimTxt;
+  }
+  if (Object.keys(erros).length) return mostrarErros(formRegra, erros);
+  Object.assign(dados, { freq, inicio, fim });
+
+  if (editRegraId) {
+    const r = estado.regras.find(x => x.id === editRegraId);
+    if (r) Object.assign(r, dados, { alt: agora() });
+    toast('Regra atualizada');
+  } else {
+    estado.regras.push({ id: novoId(), ...dados, ativa: true, processadoAte: null, alt: agora() });
+    toast('Regra criada');
+  }
+  const criados = aplicarRecorrentes();
+  guardar(); $('#dlgRegra').close(); renderTudo();
+  if (criados) toast(`${criados} movimento${criados > 1 ? 's lançados' : ' lançado'} automaticamente`);
+});
+
+$('#listaRegras').addEventListener('click', async e => {
+  const b = e.target.closest('[data-acao]'); if (!b) return;
+  const el = b.closest('[data-regra]'), r = estado.regras.find(x => x.id === el.dataset.regra); if (!r) return;
+  if (b.dataset.acao === 'editar') return abrirRegra(r.id);
+  if (b.dataset.acao === 'pausar') {
+    r.ativa = !r.ativa;
+    r.alt = agora();
+    // Ao retomar, as ocorrências em que esteve pausada não são lançadas retroativamente
+    if (r.ativa && (!r.processadoAte || r.processadoAte < ontem())) r.processadoAte = ontem();
+    const criados = r.ativa ? aplicarRecorrentes() : 0;
+    guardar(); renderTudo();
+    return toast(r.ativa ? 'Regra retomada' : 'Regra em pausa');
+  }
+  if (!await confirmar('Eliminar regra?', `A regra «${r.desc}» deixa de gerar movimentos. Os movimentos já lançados mantêm-se no histórico.`)) return;
+  el.classList.add('sai');
+  if (!reduzMovimento) await esperar(230);
+  estado.regras = estado.regras.filter(x => x.id !== r.id);
+  estado.apagados[r.id] = agora();
+  estado.movs.forEach(m => { if (m.regraId === r.id) { m.regraId = null; m.alt = agora(); } }); // mantém o histórico, sem ligação à regra
+  guardar(); renderTudo(); toast('Regra eliminada');
+});
+
+/* =========================================================
+   10. EXPORTAR / IMPORTAR / APAGAR
+   ========================================================= */
+$('#btnExportar').addEventListener('click', () => {
+  const conteudo = JSON.stringify({ versao: 2, exportadoEm: new Date().toISOString(), movs: estado.movs, regras: estado.regras, apagados: estado.apagados }, null, 2);
+  const url = URL.createObjectURL(new Blob([conteudo], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = `financas-${hoje()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('Dados exportados');
+});
+$('#btnImportar').addEventListener('click', () => $('#ficheiro').click());
+$('#ficheiro').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  let res;
+  try { res = normalizar(JSON.parse(await f.text())); } catch (err) { return toast('Ficheiro inválido: não é um JSON legível.'); }
+  const { estado: novo, ignorados } = res;
+  if (!novo.movs.length && !novo.regras.length) return toast('O ficheiro não contém movimentos nem regras válidos.');
+  const msg = `Vai substituir os dados atuais por ${novo.movs.length} movimento(s) e ${novo.regras.length} regra(s)` +
+    (ligado() ? ', em todos os dispositivos sincronizados.' : '.') + (ignorados ? ` ${ignorados} entrada(s) inválida(s) serão ignoradas.` : '');
+  if (!await confirmar('Importar dados?', msg, 'Importar')) return;
+  // Com sincronização: traz primeiro o que estiver no Dropbox, para também o poder substituir
+  if (ligado()) { try { await sincronizar(); } catch (e) { /* segue com os dados locais */ } }
+  const t = agora();
+  const ficam = new Set([...novo.movs, ...novo.regras].map(x => x.id));
+  const apagados = { ...estado.apagados };
+  for (const x of [...estado.movs, ...estado.regras]) if (!ficam.has(x.id)) apagados[x.id] = t;
+  [...novo.movs, ...novo.regras].forEach(x => { x.alt = t + 1; });   // os importados prevalecem
+  estado = { movs: novo.movs, regras: novo.regras, apagados };
+  aplicarRecorrentes(); guardar(); renderTudo(); toast('Dados importados');
+});
+$('#btnApagar').addEventListener('click', async () => {
+  if (!await confirmar('Apagar todos os dados?', 'Todos os movimentos e regras serão eliminados' + (ligado() ? ', também nos outros dispositivos sincronizados' : '') + '. Esta ação não pode ser desfeita (exporte uma cópia antes, se precisar).', 'Apagar tudo')) return;
+  const t = agora(), apagados = { ...estado.apagados };
+  [...estado.movs, ...estado.regras].forEach(x => { apagados[x.id] = t; });
+  estado = { movs: [], regras: [], apagados }; guardar(); renderTudo(); toast('Dados apagados');
+});
+
+/* =========================================================
+   11. SINCRONIZAÇÃO COM O DROPBOX
+   Cada dispositivo mantém a sua cópia local e junta-a com o ficheiro
+   /financas.json da pasta da app no Dropbox (OAuth com PKCE, sem servidor).
+   ========================================================= */
+const URL_AUTORIZAR = 'https://www.dropbox.com/oauth2/authorize';
+const URL_TOKEN     = 'https://api.dropboxapi.com/oauth2/token';
+const URL_REVOGAR   = 'https://api.dropboxapi.com/2/auth/token/revoke';
+const URL_DOWNLOAD  = 'https://content.dropboxapi.com/2/files/download';
+const URL_UPLOAD    = 'https://content.dropboxapi.com/2/files/upload';
+
+const lerJSON = chave => { try { return JSON.parse(lerArmazem(chave) || 'null'); } catch (e) { return null; } };
+let dbx = lerJSON(CHAVE_DBX) || {};          // { appKey, refresh, access, expira, ultima }
+if (!dbx.appKey && DROPBOX_APP_KEY) dbx.appKey = DROPBOX_APP_KEY;
+let sync = { estado: 'desligado', msg: '' };  // desligado | a | ok | erro | offline
+let promessaSync = null, syncPendente = false, tSync = 0;
+
+const guardarDbx = () => escreverArmazem(CHAVE_DBX, JSON.stringify(dbx));
+const ligado = () => !!(dbx.appKey && dbx.refresh);
+// Endereço para onde o Dropbox devolve o utilizador (tem de estar registado na app do Dropbox)
+const redirectUri = () => location.origin + location.pathname.replace(/index\.html?$/i, '');
+const enderecoWeb = () => location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+const b64url = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+// --- Fusão de dois estados: por id, fica a versão com "alt" mais recente ---
+function fundir(a, b) {
+  const apagados = { ...a.apagados };
+  for (const [id, t] of Object.entries(b.apagados || {})) apagados[id] = Math.max(apagados[id] || 0, t);
+  const juntar = (la, lb, ajustar) => {
+    const mapa = new Map();
+    for (const x of [...la, ...lb]) {
+      const y = mapa.get(x.id);
+      if (!y) { mapa.set(x.id, { ...x }); continue; }
+      const venc = (x.alt || 0) > (y.alt || 0) ? { ...x } : y;
+      if (ajustar) ajustar(venc, x, y);
+      mapa.set(x.id, venc);
+    }
+    // um item só sobrevive se foi alterado depois de ter sido apagado
+    return [...mapa.values()].filter(x => !(apagados[x.id] >= (x.alt || 0)));
+  };
+  return {
+    movs: juntar(a.movs, b.movs),
+    // nas regras, "processadoAte" é sempre o maior dos dois (evita relançar ocorrências)
+    regras: juntar(a.regras, b.regras, (v, x, y) => {
+      const p = [x.processadoAte, y.processadoAte].filter(Boolean).sort().pop();
+      v.processadoAte = p || null;
+    }),
+    apagados
+  };
+}
+
+// Remove movimentos automáticos repetidos (dados antigos, de antes dos ids fixos)
+function deduplicar() {
+  const vistos = new Map();
+  for (const m of [...estado.movs].sort((a, b) => (b.id.startsWith('auto-') - a.id.startsWith('auto-')) || a.id.localeCompare(b.id))) {
+    if (!m.regraId || !m.ocorrencia) continue;
+    const k = m.regraId + '|' + m.ocorrencia;
+    if (vistos.has(k)) estado.apagados[m.id] = agora(); else vistos.set(k, m.id);
+  }
+  estado.movs = estado.movs.filter(m => !(estado.apagados[m.id] >= (m.alt || 0)));
+}
+
+// Texto canónico (mesma ordem de chaves e itens) para comparar e gravar no Dropbox
+function canonico(e) {
+  const n = normalizar(e).estado;
+  const porId = (a, b) => a.id.localeCompare(b.id);
+  const apagados = {};
+  Object.keys(n.apagados).sort().forEach(k => { apagados[k] = n.apagados[k]; });
+  return JSON.stringify({ versao: 2, movs: n.movs.sort(porId), regras: n.regras.sort(porId), apagados });
+}
+
+// --- Autorização (OAuth 2 com PKCE) ---
+async function ligarDropbox(appKey) {
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  escreverArmazem(CHAVE_PKCE, JSON.stringify({ verifier, state, appKey }));
+  dbx.appKey = appKey; guardarDbx();
+  const p = new URLSearchParams({ client_id: appKey, response_type: 'code', code_challenge: challenge, code_challenge_method: 'S256',
+    redirect_uri: redirectUri(), token_access_type: 'offline', state });
+  location.href = `${URL_AUTORIZAR}?${p}`;
+}
+
+// Ao voltar do Dropbox: troca o código por tokens e limpa o endereço
+async function tratarRetornoDropbox() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return;
+  history.replaceState(null, '', redirectUri() + location.hash);
+  const pk = lerJSON(CHAVE_PKCE);
+  try { localStorage.removeItem(CHAVE_PKCE); } catch (e) { /* ignora */ }
+  if (q.has('error')) return toast('Ligação ao Dropbox cancelada');
+  if (!pk || pk.state !== q.get('state')) return toast('Ligação ao Dropbox inválida. Tente novamente.');
+  try {
+    const r = await fetch(URL_TOKEN, { method: 'POST', body: new URLSearchParams({
+      code: q.get('code'), grant_type: 'authorization_code', code_verifier: pk.verifier, client_id: pk.appKey, redirect_uri: redirectUri() }) });
+    if (!r.ok) throw new Error(await r.text());
+    const t = await r.json();
+    dbx = { appKey: pk.appKey, refresh: t.refresh_token, access: t.access_token, expira: agora() + (t.expires_in - 60) * 1000 };
+    guardarDbx();
+    toast('Ligado ao Dropbox');
+  } catch (e) {
+    console.warn(e);
+    definirSync('erro', 'Não foi possível concluir a ligação. Confirme a App key e o endereço registado no Dropbox.');
+  }
+}
+
+async function obterToken(forcar) {
+  if (!forcar && dbx.access && agora() < dbx.expira) return dbx.access;
+  const r = await fetch(URL_TOKEN, { method: 'POST', body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: dbx.refresh, client_id: dbx.appKey }) });
+  if (!r.ok) { const e = new Error('A autorização do Dropbox expirou ou foi revogada.'); e.autorizacao = true; throw e; }
+  const t = await r.json();
+  dbx.access = t.access_token; dbx.expira = agora() + (t.expires_in - 60) * 1000; guardarDbx();
+  return dbx.access;
+}
+// Pedido à API com renovação automática do token (uma nova tentativa em caso de 401)
+async function pedidoDbx(url, opcoes) {
+  for (let i = 0; i < 2; i++) {
+    const tk = await obterToken(i > 0);
+    const r = await fetch(url, { method: 'POST', ...opcoes, headers: { ...(opcoes.headers || {}), Authorization: 'Bearer ' + tk } });
+    if (r.status !== 401) return r;
+  }
+  const e = new Error('A autorização do Dropbox expirou ou foi revogada.'); e.autorizacao = true; throw e;
+}
+
+async function descarregarDbx() {
+  const r = await pedidoDbx(URL_DOWNLOAD, { headers: { 'Dropbox-API-Arg': JSON.stringify({ path: FICHEIRO_DBX }) } });
+  if (r.status === 409) {
+    const txt = await r.text();
+    if (txt.includes('not_found')) return null;            // ainda não existe: primeira sincronização
+    throw new Error('Dropbox: ' + txt);
+  }
+  if (!r.ok) throw new Error(`Dropbox respondeu ${r.status}`);
+  let meta = {};
+  try { meta = JSON.parse(r.headers.get('dropbox-api-result') || '{}'); } catch (e) { /* sem metadados */ }
+  return { texto: await r.text(), rev: meta.rev || null };
+}
+// Grava o ficheiro; com "rev" só grava se ninguém o alterou entretanto (devolve false se houve conflito)
+async function carregarDbx(texto, rev) {
+  const modo = rev ? { '.tag': 'update', update: rev } : { '.tag': 'add' };
+  const r = await pedidoDbx(URL_UPLOAD, {
+    headers: { 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': JSON.stringify({ path: FICHEIRO_DBX, mode: modo, autorename: false, mute: true }) },
+    body: texto });
+  if (r.status === 409) return false;
+  if (!r.ok) throw new Error(`Dropbox respondeu ${r.status}`);
+  return true;
+}
+
+// Descarrega → junta → lança automáticos → grava (repete se outro dispositivo gravou ao mesmo tempo)
+async function executarSync() {
+  if (!navigator.onLine) return definirSync('offline', 'Sem ligação à internet. Sincroniza quando voltar.');
+  definirSync('a', 'A sincronizar…');
+  try {
+    for (let tentativa = 0; ; tentativa++) {
+      const remoto = await descarregarDbx();
+      let dadosRemotos = null;
+      if (remoto) {
+        try { dadosRemotos = normalizar(JSON.parse(remoto.texto)).estado; }
+        catch (e) { throw new Error('O ficheiro financas.json no Dropbox está danificado. Recupere uma versão anterior no Dropbox.'); }
+      }
+      const antes = canonico(estado);
+      if (dadosRemotos) estado = fundir(estado, dadosRemotos);
+      aplicarRecorrentes(); deduplicar();
+      const depois = canonico(estado);
+      if (depois !== antes) { guardarLocal(); renderTudo(); }
+      if (dadosRemotos && canonico(dadosRemotos) === depois) break;   // já está igual: nada a enviar
+      if (await carregarDbx(depois, remoto && remoto.rev)) break;
+      if (tentativa >= 3) throw new Error('O ficheiro está a ser alterado noutro dispositivo. Tente daqui a pouco.');
+    }
+    dbx.ultima = agora(); guardarDbx();
+    definirSync('ok', '');
+  } catch (e) {
+    console.warn('Sincronização:', e);
+    if (e.autorizacao) definirSync('erro', 'A autorização expirou ou foi revogada. Desligue e volte a ligar ao Dropbox.');
+    else if (e instanceof TypeError) definirSync('offline', 'Não foi possível contactar o Dropbox. Tenta de novo automaticamente.');
+    else definirSync('erro', e.message);
+  }
+}
+function sincronizar() {
+  if (!ligado() || !enderecoWeb()) return Promise.resolve();
+  if (promessaSync) { syncPendente = true; return promessaSync; }
+  promessaSync = executarSync().finally(() => {
+    promessaSync = null;
+    if (syncPendente) { syncPendente = false; agendarSync(300); }
+  });
+  return promessaSync;
+}
+function agendarSync(ms = 1500) {
+  if (!ligado()) return;
+  clearTimeout(tSync);
+  tSync = setTimeout(sincronizar, ms);
+}
+
+async function desligarDropbox() {
+  if (!await confirmar('Desligar do Dropbox?', 'Este dispositivo deixa de sincronizar. Os dados locais e o ficheiro no Dropbox mantêm-se.', 'Desligar')) return;
+  try { if (dbx.access) await fetch(URL_REVOGAR, { method: 'POST', headers: { Authorization: 'Bearer ' + dbx.access } }); } catch (e) { /* sem rede: ignora */ }
+  dbx = { appKey: dbx.appKey };
+  guardarDbx(); definirSync('desligado', ''); toast('Desligado do Dropbox');
+}
+
+// --- Interface da sincronização ---
+const fmtHora = t => { const d = new Date(t); return `${fmtData(paraISO(d))} às ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function definirSync(estadoNovo, msg) {
+  sync = { estado: estadoNovo, msg: msg || '' };
+  const b = $('#btnSync');
+  b.classList.remove('ok', 'erro', 'offline', 'a');
+  if (estadoNovo !== 'desligado') b.classList.add(estadoNovo);
+  const titulos = { desligado: 'Sincronização (desligada)', a: 'A sincronizar…', ok: 'Sincronizado', erro: 'Erro de sincronização', offline: 'Sem ligação' };
+  b.title = titulos[estadoNovo];
+  if ($('#dlgSync').open) renderSync();
+}
+function renderSync() {
+  const c = $('#syncCorpo');
+  if (!enderecoWeb()) {
+    c.innerHTML = `<p class="txt">A sincronização só funciona quando a app é aberta a partir de um endereço web (https), e não a partir de um ficheiro guardado no computador.</p>
+      <p class="txt peq">Siga o guia de configuração para alojar a app (por exemplo no GitHub Pages) e volte a abri-la nesse endereço.</p>`;
+    return;
+  }
+  if (!ligado()) {
+    c.innerHTML = `<p class="txt peq">Guarde os dados num ficheiro do seu Dropbox e use a app no PC e no telemóvel com os mesmos dados.</p>
+      <div class="campo"><span class="lb">Endereço de redirecionamento (registe-o na app do Dropbox)</span>
+        <div class="caixa-cod"><code id="syncRedirect">${esc(redirectUri())}</code><button type="button" class="btn" id="btnCopiar">Copiar</button></div></div>
+      <div class="campo" data-campo="appkey"><label for="syncAppKey">App key</label>
+        <input type="text" id="syncAppKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex.: a1b2c3d4e5f6g7h" value="${esc(dbx.appKey || '')}">
+        <small class="erro">${sync.estado === 'erro' ? esc(sync.msg) : ''}</small></div>
+      <div class="pilha"><button type="button" class="btn primario" id="btnLigar">Ligar ao Dropbox</button></div>`;
+    return;
+  }
+  const textos = { a: 'A sincronizar…', ok: 'Sincronizado', erro: 'Erro de sincronização', offline: 'Sem ligação', desligado: 'Ligado ao Dropbox' };
+  c.innerHTML = `<div class="estado-sync ${sync.estado}"><i></i><span>${textos[sync.estado]}</span></div>
+    <p class="txt peq">${dbx.ultima ? 'Última sincronização: ' + fmtHora(dbx.ultima) : 'Ainda não sincronizou.'}${sync.msg && sync.estado !== 'a' ? '<br>' + esc(sync.msg) : ''}</p>
+    <p class="txt peq">Ficheiro: <b>Aplicações / &lt;nome da app&gt; / financas.json</b> no seu Dropbox.</p>
+    <div class="pilha">
+      <button type="button" class="btn primario" id="btnSyncAgora" ${sync.estado === 'a' ? 'disabled' : ''}>Sincronizar agora</button>
+      <button type="button" class="btn texto" id="btnDesligar">Desligar</button>
+    </div>`;
+}
+$('#btnSync').addEventListener('click', () => { renderSync(); $('#dlgSync').showModal(); });
+$('#syncCorpo').addEventListener('click', async e => {
+  const id = e.target.id;
+  if (id === 'btnCopiar') {
+    try { await navigator.clipboard.writeText(redirectUri()); toast('Endereço copiado'); }
+    catch (err) { getSelection().selectAllChildren($('#syncRedirect')); toast('Selecionado: copie com Ctrl+C / Cmd+C'); }
+  } else if (id === 'btnLigar') {
+    const chave = $('#syncAppKey').value.trim();
+    const campo = $('#syncAppKey').closest('.campo');
+    if (!/^[a-z0-9]{8,32}$/i.test(chave)) {
+      campo.classList.add('invalido'); $('.erro', campo).textContent = 'Cole a App key da sua app do Dropbox (letras e números).';
+      return $('#syncAppKey').focus();
+    }
+    e.target.disabled = true; e.target.textContent = 'A abrir o Dropbox…';
+    try { await ligarDropbox(chave); }
+    catch (err) { e.target.disabled = false; e.target.textContent = 'Ligar ao Dropbox'; $('.erro', campo).textContent = 'Este browser não suporta a ligação segura necessária.'; }
+  } else if (id === 'btnSyncAgora') {
+    await sincronizar();
+    if (sync.estado === 'ok') toast('Sincronizado');
+  } else if (id === 'btnDesligar') {
+    await desligarDropbox();
+  }
+});
+
+/* =========================================================
+   12. TEMA, SEPARADORES E EVENTOS GERAIS
+   ========================================================= */
+const prefereEscuro = () => matchMedia('(prefers-color-scheme: dark)').matches;
+function temaEfetivo() { const t = document.documentElement.dataset.theme; return t || (prefereEscuro() ? 'dark' : 'light'); }
+function atualizarBotaoTema() {
+  const escuro = temaEfetivo() === 'dark';
+  $('#btnTema').innerHTML = escuro ? ICONES.sol : ICONES.lua;
+}
+$('#btnTema').addEventListener('click', () => {
+  const novo = temaEfetivo() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = novo;
+  escreverArmazem(CHAVE_TEMA, novo);
+  atualizarBotaoTema();
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', atualizarBotaoTema);
+
+$$('.tabs button').forEach(b => b.addEventListener('click', () => {
+  $$('.tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  $$('.painel').forEach(p => p.hidden = p.id !== 'painel-' + b.dataset.tab);
+}));
+
+$('#fab').addEventListener('click', () => abrirMov());
+$('#btnNovaRegra').addEventListener('click', () => abrirRegra());
+['fTipo', 'fCat', 'fMes'].forEach(id => $('#' + id).addEventListener('change', renderLista));
+$('#mesAnt').addEventListener('click', () => { mesResumo = somaMeses(mesResumo, -1); renderResumo(); });
+$('#mesSeg').addEventListener('click', () => { mesResumo = somaMeses(mesResumo, 1); renderResumo(); });
+
+// Mantém tudo atualizado se a app ficar aberta (ex.: passou a meia-noite) ou voltar ao primeiro plano
+let diaAtual = hoje();
+function verificarDia() {
+  if (hoje() !== diaAtual) { diaAtual = hoje(); }
+  const criados = aplicarRecorrentes();
+  if (criados) { guardar(); renderTudo(); toast(`${criados} movimento${criados > 1 ? 's lançados' : ' lançado'} automaticamente`); }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { verificarDia(); renderHero(); sincronizar(); } });
+setInterval(verificarDia, 60000);
+setInterval(() => { if (!document.hidden) sincronizar(); }, 120000);
+window.addEventListener('online', () => sincronizar());
+window.addEventListener('offline', () => { if (ligado()) definirSync('offline', 'Sem ligação à internet. Sincroniza quando voltar.'); });
+
+/* =========================================================
+   13. ARRANQUE
+   ========================================================= */
+(function iniciar() {
+  const guardado = lerArmazem(CHAVE_TEMA);
+  if (guardado === 'light' || guardado === 'dark') document.documentElement.dataset.theme = guardado;
+  atualizarBotaoTema();
+  carregar();
+  const criados = aplicarRecorrentes();
+  guardarLocal();
+  renderTudo();
+  if (criados) toast(`${criados} movimento${criados > 1 ? 's lançados' : ' lançado'} automaticamente`);
+  // Sincronização: trata o regresso do Dropbox (se for o caso) e sincroniza
+  tratarRetornoDropbox().then(() => {
+    if (ligado()) { definirSync('desligado', ''); sincronizar(); }
+  });
+})();
+})();
+</script>
+</body>
+</html>

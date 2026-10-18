@@ -57,6 +57,7 @@
    2. BASE
    ========================================================= */
 * { box-sizing: border-box; margin: 0; }
+[hidden] { display: none !important; }   /* garante que o atributo hidden esconde também elementos com display próprio */
 html { -webkit-text-size-adjust: 100%; }
 body {
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -123,6 +124,9 @@ button { cursor: pointer; }
 .sugestoes .sg-t b { display: block; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sugestoes .sg-t small { color: var(--muted); font-size: 12px; line-height: 1.25; display: block; }
 .sugestoes .sg-v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); }
+.intervalo-linha { display: flex; align-items: center; gap: 12px; }
+.intervalo-linha input { width: 96px; text-align: center; font-weight: 600; }
+.intervalo-linha span { color: var(--muted); }
 /* Categorias */
 .rotulo-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 13px; font-weight: 550; text-decoration: underline; text-underline-offset: 2px; }
@@ -394,8 +398,8 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
     <section class="painel" id="painel-auto" role="tabpanel" aria-labelledby="tab-auto" hidden>
       <div class="card">
         <div class="cab-sec">
-          <h2>Regras automáticas</h2>
-          <button class="btn primario" id="btnNovaRegra" type="button">+ Nova regra</button>
+          <h2>Movimentos automáticos</h2>
+          <button class="btn primario" id="btnNovaRegra" type="button">+ Novo movimento automático</button>
         </div>
         <div class="lista" id="listaRegras"></div>
       </div>
@@ -443,10 +447,10 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
   </form>
 </dialog>
 
-<!-- Diálogo: regra automática -->
+<!-- Diálogo: movimento automático -->
 <dialog id="dlgRegra" aria-labelledby="tituloRegra">
   <form class="dlg" id="formRegra" novalidate>
-    <h3 id="tituloRegra">Nova regra automática</h3>
+    <h3 id="tituloRegra">Novo movimento automático</h3>
     <div class="campo"><span class="lb">Tipo</span>
       <div class="seg">
         <input type="radio" name="tipo" id="rTipoD" value="despesa" checked><label for="rTipoD">Despesa</label>
@@ -465,6 +469,10 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
           <option value="anual">Anual</option><option value="unica">Data específica</option>
         </select><small class="erro"></small></div>
     </div>
+    <div class="campo" data-campo="intervalo" id="campoIntervalo">
+      <label for="rIntervalo">Repetir a cada</label>
+      <div class="intervalo-linha"><input type="text" id="rIntervalo" name="intervalo" inputmode="numeric" maxlength="3" autocomplete="off" value="1"><span id="rUnidade">mês</span></div>
+      <small class="erro"></small></div>
     <div class="duo">
       <div class="campo" data-campo="inicio"><label for="rInicio" id="lbInicio">Data de início</label><input type="date" id="rInicio" name="inicio"><small class="erro"></small></div>
       <div class="campo" data-campo="fim" id="campoFim"><label for="rFim">Data de fim (opcional)</label><input type="date" id="rFim" name="fim"><small class="erro"></small></div>
@@ -571,6 +579,12 @@ const infoCat = (nome, tipo) => estado.categorias.find(c => c.nome === nome && (
   || estado.categorias.find(c => c.nome === nome) || { nome, icone: '•', cor: '#8a93a1' };
 const catPadrao = tipo => { const l = catsDe(tipo); return (l.find(c => c.fixa) || l[0] || { nome: tipo === 'ganho' ? 'Outros ganhos' : 'Outras despesas' }).nome; };
 
+const UNIDADES = { diaria: ['dia', 'dias'], semanal: ['semana', 'semanas'], mensal: ['mês', 'meses'], anual: ['ano', 'anos'] };
+// "Mensal" (a cada 1) ou "A cada 3 dias"
+function descreverFreq(r) {
+  const n = limparIntervalo(r.intervalo);
+  return r.freq === 'unica' || n === 1 ? FREQUENCIAS[r.freq] : `A cada ${n} ${UNIDADES[r.freq][1]}`;
+}
 const FREQUENCIAS = { diaria: 'Diária', semanal: 'Semanal', mensal: 'Mensal', anual: 'Anual', unica: 'Data específica' };
 const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const MESES_ABREV = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -653,6 +667,9 @@ const agora = () => Date.now();
 function lerArmazem(chave) { try { return localStorage.getItem(chave); } catch (e) { armazemOk = false; return null; } }
 function escreverArmazem(chave, valor) { try { localStorage.setItem(chave, valor); return true; } catch (e) { armazemOk = false; return false; } }
 
+// Intervalo de repetição: inteiro entre 1 e 365 (1 se faltar ou for inválido)
+const limparIntervalo = v => { const n = Math.floor(Number(v)); return n >= 1 && n <= 365 ? n : 1; };
+
 // Garante que cada tipo tem a sua categoria fixa (para onde vão os movimentos de categorias apagadas)
 function garantirFixas(lista) {
   for (const tipo of ['ganho', 'despesa']) {
@@ -686,7 +703,7 @@ function normalizar(bruto) {
     if (!r || !tipoOk(r.tipo) || !(v > 0) || !isFinite(v) || typeof r.desc !== 'string' || !r.desc.trim()
         || !FREQUENCIAS[r.freq] || !dataValida(r.inicio) || (r.fim && !dataValida(r.fim))) { ignorados++; continue; }
     regras.push({ id: idUnico(r.id), tipo: r.tipo, valor: arred(v), desc: r.desc.trim().slice(0, 80),
-      cat: String(r.cat || catPadrao(r.tipo)).slice(0, 40), freq: r.freq, inicio: r.inicio,
+      cat: String(r.cat || catPadrao(r.tipo)).slice(0, 40), freq: r.freq, intervalo: r.freq === 'unica' ? 1 : limparIntervalo(r.intervalo), inicio: r.inicio,
       fim: r.freq === 'unica' ? null : (r.fim || null), ativa: r.ativa !== false,
       processadoAte: dataValida(r.processadoAte) ? r.processadoAte : null,
       alt: Number(r.alt) > 0 ? Number(r.alt) : 0 });
@@ -734,15 +751,16 @@ function guardar() {
 // (assim o dia 31 volta a ser 31 nos meses que o permitem e fica no último dia nos outros).
 function dataOcorrencia(r, n) {
   const b = deISO(r.inicio), y = b.getFullYear(), m = b.getMonth(), d = b.getDate();
+  const k = n * limparIntervalo(r.intervalo);   // passo: "a cada N" dias, semanas, meses ou anos
   const ajustar = (ano, mes) => { // dia d limitado ao último dia do mês
     const ultimo = new Date(ano, mes + 1, 0).getDate();
     return paraISO(new Date(ano, mes, Math.min(d, ultimo)));
   };
   switch (r.freq) {
-    case 'diaria':  return paraISO(new Date(y, m, d + n));
-    case 'semanal': return paraISO(new Date(y, m, d + 7 * n));
-    case 'mensal':  { const t = new Date(y, m + n, 1); return ajustar(t.getFullYear(), t.getMonth()); }
-    case 'anual':   return ajustar(y + n, m);
+    case 'diaria':  return paraISO(new Date(y, m, d + k));
+    case 'semanal': return paraISO(new Date(y, m, d + 7 * k));
+    case 'mensal':  { const t = new Date(y, m + k, 1); return ajustar(t.getFullYear(), t.getMonth()); }
+    case 'anual':   return ajustar(y + k, m);
     default:        return n === 0 ? r.inicio : null;   // 'unica'
   }
 }
@@ -958,7 +976,7 @@ function renderEvolucao() {
 function itemProximo(r, data) {
   const c = infoCat(r.cat, r.tipo), cls = r.tipo === 'ganho' ? 'g' : 'd';
   return `<div class="item"><div class="ic ${cls}">${c.icone}</div>
-    <div class="corpo"><div class="t">${esc(r.desc)}</div><div class="m"><span>${fmtData(data)}</span><span>${FREQUENCIAS[r.freq]}</span></div></div>
+    <div class="corpo"><div class="t">${esc(r.desc)}</div><div class="m"><span>${fmtData(data)}</span><span>${descreverFreq(r)}</span></div></div>
     <div class="valor ${cls}">${r.tipo === 'ganho' ? '+' : '−'}${fmtEUR(r.valor).replace('−', '')}</div></div>`;
 }
 function renderProximos() {
@@ -1021,7 +1039,7 @@ function renderRegras() {
   const lista = [...estado.regras].sort((a, b) => ordem[estadoRegra(a)] - ordem[estadoRegra(b)] || a.desc.localeCompare(b.desc, 'pt'));
   $('#listaRegras').innerHTML = lista.length ? lista.map(r => {
     const c = infoCat(r.cat, r.tipo), cls = r.tipo === 'ganho' ? 'g' : 'd', st = estadoRegra(r), prox = proximaOcorrencia(r);
-    const quando = r.freq === 'unica' ? `Em ${fmtData(r.inicio)}` : `${FREQUENCIAS[r.freq]} · desde ${fmtData(r.inicio)}${r.fim ? ' até ' + fmtData(r.fim) : ''}`;
+    const quando = r.freq === 'unica' ? `Em ${fmtData(r.inicio)}` : `${descreverFreq(r)} · desde ${fmtData(r.inicio)}${r.fim ? ' até ' + fmtData(r.fim) : ''}`;
     const tag = st === 'ativa' ? '<span class="tag ok">Ativa</span>' : st === 'pausada' ? '<span class="tag aviso">Pausada</span>' : '<span class="tag">Terminada</span>';
     return `<div class="item" data-regra="${r.id}" style="${st !== 'ativa' ? 'opacity:.72' : ''}">
       <div class="ic ${cls}">${c.icone}</div>
@@ -1030,11 +1048,11 @@ function renderRegras() {
         <div class="m">${prox && r.ativa ? `<span>Próximo: ${fmtData(prox)}</span>` : ''}</div></div>
       <div class="valor ${cls}">${r.tipo === 'ganho' ? '+' : '−'}${fmtEUR(r.valor).replace('−', '')}</div>
       <div class="acoes">
-        <button class="icone mini" type="button" data-acao="pausar" aria-label="${r.ativa ? 'Pausar' : 'Retomar'} regra ${esc(r.desc)}" title="${r.ativa ? 'Pausar' : 'Retomar'}">${r.ativa ? ICONES.pausa : ICONES.play}</button>
-        <button class="icone mini" type="button" data-acao="editar" aria-label="Editar regra ${esc(r.desc)}">${ICONES.editar}</button>
-        <button class="icone mini perigo" type="button" data-acao="remover" aria-label="Eliminar regra ${esc(r.desc)}">${ICONES.lixo}</button>
+        <button class="icone mini" type="button" data-acao="pausar" aria-label="${r.ativa ? 'Pausar' : 'Retomar'} movimento automático ${esc(r.desc)}" title="${r.ativa ? 'Pausar' : 'Retomar'}">${r.ativa ? ICONES.pausa : ICONES.play}</button>
+        <button class="icone mini" type="button" data-acao="editar" aria-label="Editar movimento automático ${esc(r.desc)}">${ICONES.editar}</button>
+        <button class="icone mini perigo" type="button" data-acao="remover" aria-label="Eliminar movimento automático ${esc(r.desc)}">${ICONES.lixo}</button>
       </div></div>`;
-  }).join('') : '<p class="vazio">Sem regras. Crie uma para lançar automaticamente salários, rendas ou subscrições.</p>';
+  }).join('') : '<p class="vazio">Sem movimentos automáticos. Crie um para lançar automaticamente salários, rendas ou subscrições.</p>';
 }
 
 function renderTudo() { renderHero(); renderResumo(); renderFiltros(); renderLista(); renderRegras(); }
@@ -1173,20 +1191,29 @@ const formRegra = $('#formRegra');
 function atualizarCamposFreq() {
   const unica = formRegra.elements.freq.value === 'unica';
   $('#campoFim').hidden = unica;
+  $('#campoIntervalo').hidden = unica;
   $('#lbInicio').textContent = unica ? 'Data' : 'Data de início';
+  atualizarUnidade();
+}
+// "dia/dias", "semana/semanas"… conforme a frequência e o número escolhidos
+function atualizarUnidade() {
+  const u = UNIDADES[formRegra.elements.freq.value]; if (!u) return;
+  $('#rUnidade').textContent = Number(formRegra.elements.intervalo.value) === 1 ? u[0] : u[1];
 }
 formRegra.elements.freq.addEventListener('change', atualizarCamposFreq);
+formRegra.elements.intervalo.addEventListener('input', atualizarUnidade);
 $$('input[name=tipo]', formRegra).forEach(r => r.addEventListener('change', () => preencherCategorias(formRegra.elements.cat, formRegra.elements.tipo.value)));
 
 function abrirRegra(id) {
   editRegraId = id || null;
   const r = id ? estado.regras.find(x => x.id === id) : null;
-  $('#tituloRegra').textContent = r ? 'Editar regra' : 'Nova regra automática';
+  $('#tituloRegra').textContent = r ? 'Editar movimento automático' : 'Novo movimento automático';
   formRegra.elements.tipo.value = r ? r.tipo : 'despesa';
   preencherCategorias(formRegra.elements.cat, formRegra.elements.tipo.value, r && r.cat);
   formRegra.elements.valor.value = r ? fmtNumInput(r.valor) : '';
   formRegra.elements.desc.value = r ? r.desc : '';
   formRegra.elements.freq.value = r ? r.freq : 'mensal';
+  formRegra.elements.intervalo.value = r ? limparIntervalo(r.intervalo) : 1;
   formRegra.elements.inicio.value = r ? r.inicio : hoje();
   formRegra.elements.fim.value = r && r.fim ? r.fim : '';
   atualizarCamposFreq(); mostrarErros(formRegra, {});
@@ -1200,6 +1227,9 @@ formRegra.addEventListener('submit', e => {
   const dados = validarBase(formRegra, erros);
   const freq = formRegra.elements.freq.value, inicio = formRegra.elements.inicio.value, fimTxt = formRegra.elements.fim.value;
   if (!FREQUENCIAS[freq]) erros.freq = 'Escolha a frequência.';
+  const intervaloTxt = formRegra.elements.intervalo.value.trim();
+  const intervalo = freq === 'unica' ? 1 : Number(intervaloTxt);
+  if (freq !== 'unica' && !(/^\d+$/.test(intervaloTxt) && intervalo >= 1 && intervalo <= 365)) erros.intervalo = 'Escolha um número inteiro entre 1 e 365.';
   if (!dataValida(inicio)) erros.inicio = 'Escolha uma data válida.';
   let fim = null;
   if (freq !== 'unica' && fimTxt) {
@@ -1208,15 +1238,15 @@ formRegra.addEventListener('submit', e => {
     else fim = fimTxt;
   }
   if (Object.keys(erros).length) return mostrarErros(formRegra, erros);
-  Object.assign(dados, { freq, inicio, fim });
+  Object.assign(dados, { freq, intervalo, inicio, fim });
 
   if (editRegraId) {
     const r = estado.regras.find(x => x.id === editRegraId);
     if (r) Object.assign(r, dados, { alt: agora() });
-    toast('Regra atualizada');
+    toast('Movimento automático atualizado');
   } else {
     estado.regras.push({ id: novoId(), ...dados, ativa: true, processadoAte: null, alt: agora() });
-    toast('Regra criada');
+    toast('Movimento automático criado');
   }
   const criados = aplicarRecorrentes();
   guardar(); $('#dlgRegra').close(); renderTudo();
@@ -1234,15 +1264,15 @@ $('#listaRegras').addEventListener('click', async e => {
     if (r.ativa && (!r.processadoAte || r.processadoAte < ontem())) r.processadoAte = ontem();
     const criados = r.ativa ? aplicarRecorrentes() : 0;
     guardar(); renderTudo();
-    return toast(r.ativa ? 'Regra retomada' : 'Regra em pausa');
+    return toast(r.ativa ? 'Movimento automático retomado' : 'Movimento automático em pausa');
   }
-  if (!await confirmar('Eliminar regra?', `A regra «${r.desc}» deixa de gerar movimentos. Os movimentos já lançados mantêm-se no histórico.`)) return;
+  if (!await confirmar('Eliminar movimento automático?', `O movimento automático «${r.desc}» deixa de ser lançado. Os movimentos já lançados mantêm-se no histórico.`)) return;
   el.classList.add('sai');
   if (!reduzMovimento) await esperar(230);
   estado.regras = estado.regras.filter(x => x.id !== r.id);
   estado.apagados[r.id] = agora();
   estado.movs.forEach(m => { if (m.regraId === r.id) { m.regraId = null; m.alt = agora(); } }); // mantém o histórico, sem ligação à regra
-  guardar(); renderTudo(); toast('Regra eliminada');
+  guardar(); renderTudo(); toast('Movimento automático eliminado');
 });
 
 
@@ -1334,7 +1364,7 @@ $('#catsItens').addEventListener('click', async e => {
   const c = estado.categorias.find(x => x.id === b.closest('[data-cat]').dataset.cat); if (!c) return;
   if (b.dataset.acao === 'editar') return abrirFormCat(c.id);
   const n = usosCat(c), destino = catPadrao(c.tipo);
-  const aviso = n ? `${n} movimento(s) ou regra(s) com esta categoria passam para «${destino}».` : 'Nenhum movimento usa esta categoria.';
+  const aviso = n ? `${n} movimento(s) (incluindo automáticos) com esta categoria passam para «${destino}».` : 'Nenhum movimento usa esta categoria.';
   if (!await confirmar('Eliminar categoria?', `A categoria «${c.nome}» será eliminada. ${aviso}`, 'Eliminar')) return;
   const t = agora();
   [...estado.movs, ...estado.regras].forEach(x => { if (x.tipo === c.tipo && x.cat === c.nome) { x.cat = destino; x.alt = t; } });
@@ -1372,8 +1402,8 @@ $('#ficheiro').addEventListener('change', async e => {
   let bruto;
   try { bruto = JSON.parse(await f.text()); res = normalizar(bruto); } catch (err) { return toast('Ficheiro inválido: não é um JSON legível.'); }
   const { estado: novo, ignorados } = res;
-  if (!novo.movs.length && !novo.regras.length) return toast('O ficheiro não contém movimentos nem regras válidos.');
-  const msg = `Vai substituir os dados atuais por ${novo.movs.length} movimento(s) e ${novo.regras.length} regra(s)` +
+  if (!novo.movs.length && !novo.regras.length) return toast('O ficheiro não contém movimentos válidos.');
+  const msg = `Vai substituir os dados atuais por ${novo.movs.length} movimento(s) e ${novo.regras.length} movimento(s) automático(s)` +
     (ligado() ? ', em todos os dispositivos sincronizados.' : '.') + (ignorados ? ` ${ignorados} entrada(s) inválida(s) serão ignoradas.` : '');
   if (!await confirmar('Importar dados?', msg, 'Importar')) return;
   // Com sincronização: traz primeiro o que estiver no Dropbox, para também o poder substituir
@@ -1391,7 +1421,7 @@ $('#ficheiro').addEventListener('change', async e => {
   aplicarRecorrentes(); guardar(); renderTudo(); toast('Dados importados');
 });
 $('#btnApagar').addEventListener('click', async () => {
-  if (!await confirmar('Apagar todos os dados?', 'Todos os movimentos e regras serão eliminados' + (ligado() ? ', também nos outros dispositivos sincronizados' : '') + '. Esta ação não pode ser desfeita (exporte uma cópia antes, se precisar).', 'Apagar tudo')) return;
+  if (!await confirmar('Apagar todos os dados?', 'Todos os movimentos, incluindo os automáticos, serão eliminados' + (ligado() ? ', também nos outros dispositivos sincronizados' : '') + '. Esta ação não pode ser desfeita (exporte uma cópia antes, se precisar).', 'Apagar tudo')) return;
   const t = agora(), apagados = { ...estado.apagados };
   [...estado.movs, ...estado.regras].forEach(x => { apagados[x.id] = t; });
   estado = { movs: [], regras: [], apagados, categorias: estado.categorias }; guardar(); renderTudo(); toast('Dados apagados');

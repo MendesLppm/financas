@@ -107,6 +107,22 @@ button { cursor: pointer; }
 .estado-sync.a i { background: var(--accent); animation: pulsar 1.1s infinite; }
 .pilha { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 6px; }
 .dlg .txt.peq { font-size: 13px; margin-bottom: 12px; }
+/* Categorias */
+.rotulo-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 13px; font-weight: 550; text-decoration: underline; text-underline-offset: 2px; }
+.seg.espaco { margin-bottom: 14px; }
+.cats-lista { max-height: 46dvh; overflow: auto; margin: 0 -6px 14px; padding: 0 6px; }
+.cor-ponto { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.emoji-cx { width: 64px !important; text-align: center; font-size: 26px !important; padding: 6px !important; }
+.emoji-linha { display: flex; gap: 10px; align-items: center; }
+.emoji-grelha { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; margin-top: 8px; max-height: 132px; overflow: auto; padding: 6px; background: var(--surface-2); border-radius: var(--radius-sm); }
+.emoji-grelha button { border: 0; background: transparent; border-radius: 10px; font-size: 21px; line-height: 1; padding: 6px 0; }
+.emoji-grelha button:hover, .emoji-grelha button.sel { background: var(--surface); box-shadow: var(--shadow-sm); }
+.cores { display: flex; flex-wrap: wrap; gap: 10px; }
+.cores input { position: absolute; opacity: 0; pointer-events: none; }
+.cores label { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; box-shadow: inset 0 0 0 2px var(--surface); border: 2px solid transparent; transition: transform .12s; }
+.cores input:checked + label { border-color: var(--text); transform: scale(1.08); }
+.cores input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Cartões */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -235,23 +251,26 @@ input:focus, select:focus { outline: none; border-color: var(--accent); box-shad
 /* Botão flutuante */
 .fab { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom));
        width: 60px; height: 60px; border-radius: 50%; border: 0; background: var(--primary); color: var(--on-primary);
-       box-shadow: var(--shadow-lg); display: grid; place-items: center; z-index: 20; transition: transform .2s; }
+       box-shadow: none; display: grid; place-items: center; z-index: 20; transition: transform .2s; }
 .fab:hover { transform: scale(1.06) rotate(90deg); }
 .fab:active { transform: scale(.94); }
 .fab svg { width: 26px; height: 26px; }
+/* No PC (ecrã largo com rato/trackpad) o botão passa para o canto superior direito do cartão do saldo */
+.hero { position: relative; }
+@media (min-width: 720px) and (pointer: fine) {
+  .fab { position: absolute; top: 20px; right: 20px; bottom: auto; width: 48px; height: 48px; }
+  .fab svg { width: 22px; height: 22px; }
+}
 
 /* Diálogos */
-dialog { border: 0; padding: 0; border-radius: 22px; width: calc(100% - 32px); max-width: 460px; background: var(--surface); color: var(--text);
+dialog { margin: auto; /* o reset "* { margin: 0 }" anulava a centragem nativa */ border: 0; padding: 0; border-radius: 22px; width: calc(100% - 32px); max-width: 460px; background: var(--surface); color: var(--text);
          box-shadow: var(--shadow-lg); max-height: 92dvh; overflow: auto; }
 dialog[open] { animation: modal .28s cubic-bezier(.2,.8,.2,1); }
 dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); animation: aparecer .25s; }
 .dlg { padding: 22px; }
 .dlg h3 { font-size: 18px; letter-spacing: -.01em; margin-bottom: 16px; }
 .dlg p.txt { color: var(--muted); margin-bottom: 18px; }
-@media (max-width: 560px) {
-  dialog { margin: auto 0 0; width: 100%; max-width: none; border-radius: 22px 22px 0 0; }
-  dialog[open] { animation: subir .3s cubic-bezier(.2,.8,.2,1); }
-}
+
 
 /* Toast */
 .toast { position: fixed; left: 50%; bottom: 96px; transform: translate(-50%, 20px); background: var(--primary); color: var(--on-primary);
@@ -290,6 +309,10 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
   <main>
     <!-- Saldo atual -->
     <section class="card hero" aria-labelledby="rotuloSaldo">
+      <!-- Botão «+»: flutuante no telemóvel; no PC fica no canto superior direito deste cartão -->
+      <button class="fab" id="fab" type="button" aria-label="Novo movimento" title="Novo movimento">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
       <p class="rotulo" id="rotuloSaldo">Saldo atual</p>
       <p class="saldo" id="saldo" aria-live="polite">0,00 €</p>
       <p class="nota" id="saldoNota"></p>
@@ -365,6 +388,7 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
     <!-- Dados -->
     <div class="dados">
       <p>Os dados ficam guardados neste browser. Exporte uma cópia de segurança sempre que quiser.</p>
+      <button class="btn" id="btnCategorias" type="button">Categorias</button>
       <button class="btn" id="btnExportar" type="button">Exportar JSON</button>
       <button class="btn" id="btnImportar" type="button">Importar JSON</button>
       <button class="btn texto" id="btnApagar" type="button">Apagar tudo</button>
@@ -372,11 +396,6 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
     </div>
   </main>
 </div>
-
-<!-- Botão flutuante -->
-<button class="fab" id="fab" type="button" aria-label="Novo movimento" title="Novo movimento">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-</button>
 
 <!-- Diálogo: movimento -->
 <dialog id="dlgMov" aria-labelledby="tituloMov">
@@ -393,7 +412,7 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
     <div class="campo" data-campo="desc"><label for="mDesc">Descrição</label>
       <input type="text" id="mDesc" name="desc" maxlength="80" autocomplete="off" placeholder="Ex.: Supermercado"><small class="erro"></small></div>
     <div class="duo">
-      <div class="campo" data-campo="cat"><label for="mCat">Categoria</label><select id="mCat" name="cat"></select><small class="erro"></small></div>
+      <div class="campo" data-campo="cat"><div class="rotulo-linha"><label for="mCat">Categoria</label><button type="button" class="linkbtn" data-gerir="mov">Gerir</button></div><select id="mCat" name="cat"></select><small class="erro"></small></div>
       <div class="campo" data-campo="data"><label for="mData">Data</label><input type="date" id="mData" name="data"><small class="erro"></small></div>
     </div>
     <div class="linha-btn">
@@ -418,7 +437,7 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
     <div class="campo" data-campo="desc"><label for="rDesc">Descrição</label>
       <input type="text" id="rDesc" name="desc" maxlength="80" autocomplete="off" placeholder="Ex.: Salário, Renda, Netflix"><small class="erro"></small></div>
     <div class="duo">
-      <div class="campo" data-campo="cat"><label for="rCat">Categoria</label><select id="rCat" name="cat"></select><small class="erro"></small></div>
+      <div class="campo" data-campo="cat"><div class="rotulo-linha"><label for="rCat">Categoria</label><button type="button" class="linkbtn" data-gerir="regra">Gerir</button></div><select id="rCat" name="cat"></select><small class="erro"></small></div>
       <div class="campo" data-campo="freq"><label for="rFreq">Frequência</label>
         <select id="rFreq" name="freq">
           <option value="mensal">Mensal</option><option value="semanal">Semanal</option><option value="diaria">Diária</option>
@@ -434,6 +453,37 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
       <button type="submit" class="btn primario">Guardar</button>
     </div>
   </form>
+</dialog>
+
+<!-- Diálogo: gerir categorias -->
+<dialog id="dlgCats" aria-labelledby="tituloCats">
+  <div class="dlg">
+    <div id="catsVista">
+      <h3 id="tituloCats">Categorias</h3>
+      <div class="seg espaco" role="radiogroup" aria-label="Tipo de categoria">
+        <input type="radio" name="ctipo" id="cTipoD" value="despesa" checked><label for="cTipoD">Despesas</label>
+        <input type="radio" name="ctipo" id="cTipoG" value="ganho"><label for="cTipoG">Ganhos</label>
+      </div>
+      <div class="lista cats-lista" id="catsItens"></div>
+      <div class="linha-btn">
+        <button type="button" class="btn" id="btnNovaCat">+ Nova categoria</button>
+        <button type="button" class="btn primario" data-fechar>Concluído</button>
+      </div>
+    </div>
+    <form id="catsForm" hidden novalidate>
+      <h3 id="tituloCatForm">Nova categoria</h3>
+      <div class="campo" data-campo="icone"><label for="cIcone">Emoji</label>
+        <div class="emoji-linha"><input type="text" id="cIcone" class="emoji-cx" autocomplete="off" aria-label="Emoji da categoria"><span class="txt peq" style="margin:0;color:var(--muted)">Escreva ou escolha um emoji</span></div>
+        <div class="emoji-grelha" id="cGrelha"></div><small class="erro"></small></div>
+      <div class="campo" data-campo="nome"><label for="cNome">Nome</label>
+        <input type="text" id="cNome" maxlength="30" autocomplete="off" placeholder="Ex.: Animais"><small class="erro"></small></div>
+      <div class="campo"><span class="lb">Cor (usada nos gráficos)</span><div class="cores" id="cCores" role="radiogroup" aria-label="Cor"></div></div>
+      <div class="linha-btn">
+        <button type="button" class="btn" id="btnCatCancelar">Cancelar</button>
+        <button type="submit" class="btn primario">Guardar</button>
+      </div>
+    </form>
+  </div>
 </dialog>
 
 <!-- Diálogo: confirmação -->
@@ -477,23 +527,28 @@ const CHAVE_DBX       = 'financas.dropbox.v1';
 const CHAVE_PKCE      = 'financas.dropbox.pkce';
 const FICHEIRO_DBX    = '/financas.json';   // dentro da pasta da app no Dropbox
 
-// Categorias por tipo (ícone e cor para gráficos) — edite à vontade
-const CATEGORIAS = {
-  ganho: [
-    { nome: 'Salário', icone: '💼' }, { nome: 'Investimentos', icone: '📈' },
-    { nome: 'Presentes', icone: '🎁' }, { nome: 'Outros ganhos', icone: '💶' }
-  ],
-  despesa: [
-    { nome: 'Habitação', icone: '🏠', cor: '#5b7db1' }, { nome: 'Alimentação', icone: '🛒', cor: '#e0a43a' },
-    { nome: 'Transportes', icone: '🚌', cor: '#4fa39d' }, { nome: 'Subscrições', icone: '🔁', cor: '#9b7bc4' },
-    { nome: 'Saúde', icone: '🩺', cor: '#e0687a' }, { nome: 'Lazer', icone: '🎬', cor: '#e48a4a' },
-    { nome: 'Educação', icone: '📚', cor: '#6aa84f' }, { nome: 'Compras', icone: '🛍️', cor: '#c26ba0' },
-    { nome: 'Outras despesas', icone: '🧾', cor: '#8a93a1' }
-  ]
-};
-const TODAS_CATS = [...CATEGORIAS.ganho, ...CATEGORIAS.despesa];
-const infoCat = nome => TODAS_CATS.find(c => c.nome === nome) || { nome, icone: '•', cor: '#8a93a1' };
-const catPadrao = tipo => (tipo === 'ganho' ? 'Outros ganhos' : 'Outras despesas');
+// Categorias de origem. Depois de criadas, vivem em estado.categorias (editáveis na app e sincronizadas).
+// A categoria "fixa" de cada tipo não pode ser eliminada: recebe os movimentos das categorias que forem apagadas.
+const CATS_BASE = [
+  { tipo: 'ganho', nome: 'Salário', icone: '💼', cor: '#15885a' }, { tipo: 'ganho', nome: 'Investimentos', icone: '📈', cor: '#3d5a98' },
+  { tipo: 'ganho', nome: 'Presentes', icone: '🎁', cor: '#c26ba0' }, { tipo: 'ganho', nome: 'Outros ganhos', icone: '💶', cor: '#8a93a1', fixa: true },
+  { tipo: 'despesa', nome: 'Habitação', icone: '🏠', cor: '#5b7db1' }, { tipo: 'despesa', nome: 'Alimentação', icone: '🛒', cor: '#e0a43a' },
+  { tipo: 'despesa', nome: 'Transportes', icone: '🚌', cor: '#4fa39d' }, { tipo: 'despesa', nome: 'Subscrições', icone: '🔁', cor: '#9b7bc4' },
+  { tipo: 'despesa', nome: 'Saúde', icone: '🩺', cor: '#e0687a' }, { tipo: 'despesa', nome: 'Lazer', icone: '🎬', cor: '#e48a4a' },
+  { tipo: 'despesa', nome: 'Educação', icone: '📚', cor: '#6aa84f' }, { tipo: 'despesa', nome: 'Compras', icone: '🛍️', cor: '#c26ba0' },
+  { tipo: 'despesa', nome: 'Outras despesas', icone: '🧾', cor: '#8a93a1', fixa: true }
+];
+const slug = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// Ids fixos nas categorias de origem: dois dispositivos novos têm as mesmas categorias, sem duplicados na sincronização
+const idBase = c => `cat-${c.tipo[0]}-${slug(c.nome)}`;
+const catsIniciais = () => CATS_BASE.map(c => ({ id: idBase(c), tipo: c.tipo, nome: c.nome, icone: c.icone, cor: c.cor, fixa: !!c.fixa, alt: 0 }));
+const PALETA = ['#5b7db1', '#e0a43a', '#4fa39d', '#9b7bc4', '#e0687a', '#e48a4a', '#6aa84f', '#c26ba0', '#3d5a98', '#15885a', '#b5651d', '#8a93a1'];
+const EMOJIS = ['🏠','🛒','🚌','🔁','🩺','🎬','📚','🛍️','🧾','💼','📈','🎁','💶','☕','🍽️','🍔','🍕','🍺','🚗','⛽','🚆','✈️','🏖️','🎮','🎵','📱','💻','👕','👟','🐶','🐱','🧒','🎓','💊','🏋️','💡','💧','🔥','📞','🏦','💳','🛠️','🎂','💐','🚲','🔧','🧴','🏥'];
+
+const catsDe = tipo => estado.categorias.filter(c => c.tipo === tipo);
+const infoCat = (nome, tipo) => estado.categorias.find(c => c.nome === nome && (!tipo || c.tipo === tipo))
+  || estado.categorias.find(c => c.nome === nome) || { nome, icone: '•', cor: '#8a93a1' };
+const catPadrao = tipo => { const l = catsDe(tipo); return (l.find(c => c.fixa) || l[0] || { nome: tipo === 'ganho' ? 'Outros ganhos' : 'Outras despesas' }).nome; };
 
 const FREQUENCIAS = { diaria: 'Diária', semanal: 'Semanal', mensal: 'Mensal', anual: 'Anual', unica: 'Data específica' };
 const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -571,11 +626,22 @@ function lerValor(txt) {
 let armazemOk = true;
 // movs/regras têm "alt" (data da última alteração, em ms) para a fusão entre dispositivos;
 // "apagados" regista { id: data da eliminação } para que um item apagado não volte a aparecer.
-let estado = { movs: [], regras: [], apagados: {} };
+let estado = { movs: [], regras: [], apagados: {}, categorias: catsIniciais() };
 const agora = () => Date.now();
 
 function lerArmazem(chave) { try { return localStorage.getItem(chave); } catch (e) { armazemOk = false; return null; } }
 function escreverArmazem(chave, valor) { try { localStorage.setItem(chave, valor); return true; } catch (e) { armazemOk = false; return false; } }
+
+// Garante que cada tipo tem a sua categoria fixa (para onde vão os movimentos de categorias apagadas)
+function garantirFixas(lista) {
+  for (const tipo of ['ganho', 'despesa']) {
+    if (lista.some(c => c.tipo === tipo && c.fixa)) continue;
+    const base = CATS_BASE.find(c => c.tipo === tipo && c.fixa);
+    const existente = lista.find(c => c.tipo === tipo && c.nome.toLowerCase() === base.nome.toLowerCase());
+    if (existente) existente.fixa = true;
+    else lista.push({ id: idBase(base), tipo, nome: base.nome, icone: base.icone, cor: base.cor, fixa: true, alt: 0 });
+  }
+}
 
 // Valida e limpa dados (usado ao carregar e ao importar). Devolve { estado, ignorados }
 function normalizar(bruto) {
@@ -603,13 +669,25 @@ function normalizar(bruto) {
       processadoAte: dataValida(r.processadoAte) ? r.processadoAte : null,
       alt: Number(r.alt) > 0 ? Number(r.alt) : 0 });
   }
+  const categorias = [];
+  const temCats = Array.isArray(bruto && bruto.categorias);
+  for (const c of (temCats ? bruto.categorias : [])) {
+    const nome = c && typeof c.nome === 'string' ? c.nome.trim().slice(0, 30) : '';
+    const icone = c && typeof c.icone === 'string' ? c.icone.trim().slice(0, 12) : '';
+    if (!c || !tipoOk(c.tipo) || !nome || !icone) { ignorados++; continue; }
+    if (categorias.some(x => x.tipo === c.tipo && x.nome.toLowerCase() === nome.toLowerCase())) continue;   // nome repetido
+    categorias.push({ id: idUnico(c.id), tipo: c.tipo, nome, icone, cor: /^#[0-9a-f]{6}$/i.test(c.cor) ? c.cor : '#8a93a1',
+      fixa: !!c.fixa, alt: Number(c.alt) > 0 ? Number(c.alt) : 0 });
+  }
+  if (!temCats) catsIniciais().forEach(c => { c.id = idUnico(c.id); categorias.push(c); });   // dados sem categorias: usa as de origem
+  garantirFixas(categorias);
   const apagados = {};
   const ap = bruto && typeof bruto.apagados === 'object' && bruto.apagados ? bruto.apagados : {};
   for (const [id, t] of Object.entries(ap)) {
     const limpo = String(id).replace(/[^\w-]/g, '');
     if (limpo && Number(t) > 0) apagados[limpo] = Number(t);
   }
-  return { estado: { movs, regras, apagados }, ignorados };
+  return { estado: { movs, regras, apagados, categorias }, ignorados };
 }
 
 function carregar() {
@@ -730,7 +808,7 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d 
 $$('[data-fechar]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 
 function preencherCategorias(select, tipo, atual) {
-  const lista = CATEGORIAS[tipo];
+  const lista = catsDe(tipo);
   select.innerHTML = lista.map(c => `<option value="${esc(c.nome)}">${c.icone} ${esc(c.nome)}</option>`).join('');
   // categoria desconhecida (ex.: importada) mantém-se disponível
   if (atual && !lista.some(c => c.nome === atual)) select.insertAdjacentHTML('beforeend', `<option value="${esc(atual)}">${esc(atual)}</option>`);
@@ -810,10 +888,10 @@ function renderDonut() {
   let acum = 0;
   const arcos = itens.map(([cat, c]) => {
     const pct = c / total * 100;
-    const svg = `<circle r="15.9155" cx="21" cy="21" fill="none" stroke="${infoCat(cat).cor}" stroke-width="6" stroke-dasharray="${pct.toFixed(3)} ${(100 - pct).toFixed(3)}" stroke-dashoffset="${(25 - acum).toFixed(3)}"><title>${esc(cat)}: ${fmtEUR(c / 100)}</title></circle>`;
+    const svg = `<circle r="15.9155" cx="21" cy="21" fill="none" stroke="${infoCat(cat, 'despesa').cor}" stroke-width="6" stroke-dasharray="${pct.toFixed(3)} ${(100 - pct).toFixed(3)}" stroke-dashoffset="${(25 - acum).toFixed(3)}"><title>${esc(cat)}: ${fmtEUR(c / 100)}</title></circle>`;
     acum += pct; return svg;
   }).join('');
-  const legenda = itens.map(([cat, c]) => `<li><i style="background:${infoCat(cat).cor}"></i><span>${esc(cat)}</span><b>${fmtEUR(c / 100)}</b><em>${Math.round(c / total * 100)}%</em></li>`).join('');
+  const legenda = itens.map(([cat, c]) => `<li><i style="background:${infoCat(cat, 'despesa').cor}"></i><span>${esc(cat)}</span><b>${fmtEUR(c / 100)}</b><em>${Math.round(c / total * 100)}%</em></li>`).join('');
   alvo.innerHTML = `<div class="donut-box">
     <svg class="donut" viewBox="0 0 42 42" role="img" aria-label="Despesas por categoria">
       <circle r="15.9155" cx="21" cy="21" fill="none" stroke="var(--surface-2)" stroke-width="6"/>${arcos}
@@ -848,7 +926,7 @@ function renderEvolucao() {
 }
 
 function itemProximo(r, data) {
-  const c = infoCat(r.cat), cls = r.tipo === 'ganho' ? 'g' : 'd';
+  const c = infoCat(r.cat, r.tipo), cls = r.tipo === 'ganho' ? 'g' : 'd';
   return `<div class="item"><div class="ic ${cls}">${c.icone}</div>
     <div class="corpo"><div class="t">${esc(r.desc)}</div><div class="m"><span>${fmtData(data)}</span><span>${FREQUENCIAS[r.freq]}</span></div></div>
     <div class="valor ${cls}">${r.tipo === 'ganho' ? '+' : '−'}${fmtEUR(r.valor).replace('−', '')}</div></div>`;
@@ -875,8 +953,8 @@ function renderFiltros() {
   const selCat = $('#fCat'), selMes = $('#fMes');
   const catAtual = selCat.value, mesAtual = selMes.value;
   selCat.innerHTML = '<option value="">Todas as categorias</option>' +
-    TODAS_CATS.filter((c, i, a) => a.findIndex(x => x.nome === c.nome) === i).map(c => `<option value="${esc(c.nome)}">${c.icone} ${esc(c.nome)}</option>`).join('');
-  const extra = [...new Set(estado.movs.map(m => m.cat))].filter(n => !TODAS_CATS.some(c => c.nome === n));
+    estado.categorias.filter((c, i, a) => a.findIndex(x => x.nome === c.nome) === i).map(c => `<option value="${esc(c.nome)}">${c.icone} ${esc(c.nome)}</option>`).join('');
+  const extra = [...new Set(estado.movs.map(m => m.cat))].filter(n => !estado.categorias.some(c => c.nome === n));
   extra.forEach(n => selCat.insertAdjacentHTML('beforeend', `<option value="${esc(n)}">${esc(n)}</option>`));
   selCat.value = [...selCat.options].some(o => o.value === catAtual) ? catAtual : '';
 
@@ -886,7 +964,7 @@ function renderFiltros() {
 }
 
 function htmlMov(m) {
-  const c = infoCat(m.cat), cls = m.tipo === 'ganho' ? 'g' : 'd', h = hoje();
+  const c = infoCat(m.cat, m.tipo), cls = m.tipo === 'ganho' ? 'g' : 'd', h = hoje();
   const tags = (m.regraId ? '<span class="tag ok">Automático</span>' : '') + (m.data > h ? '<span class="tag aviso">Agendado</span>' : '');
   return `<div class="item${m.id === novoItemId ? ' entra' : ''}" data-mov="${m.id}">
     <div class="ic ${cls}">${c.icone}</div>
@@ -912,7 +990,7 @@ function renderRegras() {
   const ordem = { ativa: 0, pausada: 1, terminada: 2 };
   const lista = [...estado.regras].sort((a, b) => ordem[estadoRegra(a)] - ordem[estadoRegra(b)] || a.desc.localeCompare(b.desc, 'pt'));
   $('#listaRegras').innerHTML = lista.length ? lista.map(r => {
-    const c = infoCat(r.cat), cls = r.tipo === 'ganho' ? 'g' : 'd', st = estadoRegra(r), prox = proximaOcorrencia(r);
+    const c = infoCat(r.cat, r.tipo), cls = r.tipo === 'ganho' ? 'g' : 'd', st = estadoRegra(r), prox = proximaOcorrencia(r);
     const quando = r.freq === 'unica' ? `Em ${fmtData(r.inicio)}` : `${FREQUENCIAS[r.freq]} · desde ${fmtData(r.inicio)}${r.fim ? ' até ' + fmtData(r.fim) : ''}`;
     const tag = st === 'ativa' ? '<span class="tag ok">Ativa</span>' : st === 'pausada' ? '<span class="tag aviso">Pausada</span>' : '<span class="tag">Terminada</span>';
     return `<div class="item" data-regra="${r.id}" style="${st !== 'ativa' ? 'opacity:.72' : ''}">
@@ -1074,11 +1152,118 @@ $('#listaRegras').addEventListener('click', async e => {
   guardar(); renderTudo(); toast('Regra eliminada');
 });
 
+
+/* =========================================================
+   9b. CATEGORIAS — criar, editar (nome, emoji, cor) e eliminar
+   ========================================================= */
+let catTipo = 'despesa', catEditId = null, formOrigem = null;
+const dlgCats = $('#dlgCats'), formCat = $('#catsForm');
+const usosCat = c => estado.movs.filter(m => m.tipo === c.tipo && m.cat === c.nome).length + estado.regras.filter(r => r.tipo === c.tipo && r.cat === c.nome).length;
+
+function primeiroGrafema(t) {
+  t = String(t).trim(); if (!t) return '';
+  try { return [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(t)][0].segment; } catch (e) { return Array.from(t)[0]; }
+}
+function renderCats() {
+  const lista = catsDe(catTipo);
+  $('#catsItens').innerHTML = lista.map(c => {
+    const n = usosCat(c), cls = c.tipo === 'ganho' ? 'g' : 'd';
+    return `<div class="item" data-cat="${c.id}">
+      <div class="ic ${cls}">${esc(c.icone)}</div>
+      <div class="corpo"><div class="t">${esc(c.nome)}</div>
+        <div class="m"><span class="cor-ponto" style="background:${c.cor}"></span><span>${n} utilização${n === 1 ? '' : 'ões'}</span>${c.fixa ? '<span class="tag">Padrão</span>' : ''}</div></div>
+      <div class="acoes">
+        <button class="icone mini" type="button" data-acao="editar" aria-label="Editar categoria ${esc(c.nome)}">${ICONES.editar}</button>
+        ${c.fixa ? '' : `<button class="icone mini perigo" type="button" data-acao="remover" aria-label="Eliminar categoria ${esc(c.nome)}">${ICONES.lixo}</button>`}
+      </div></div>`;
+  }).join('');
+}
+function abrirCats(tipo) {
+  catTipo = tipo || 'despesa';
+  $(`input[name=ctipo][value=${catTipo}]`).checked = true;
+  $('#catsVista').hidden = false; formCat.hidden = true;
+  renderCats(); dlgCats.showModal();
+}
+$$('input[name=ctipo]').forEach(r => r.addEventListener('change', () => { catTipo = r.value; renderCats(); }));
+$('#btnCategorias').addEventListener('click', () => abrirCats('despesa'));
+$$('[data-gerir]').forEach(b => b.addEventListener('click', () => abrirCats((b.dataset.gerir === 'mov' ? formMov : formRegra).elements.tipo.value)));
+$('#btnNovaCat').addEventListener('click', () => abrirFormCat(null));
+
+function abrirFormCat(id) {
+  catEditId = id;
+  const c = id ? estado.categorias.find(x => x.id === id) : null;
+  $('#tituloCatForm').textContent = c ? 'Editar categoria' : (catTipo === 'ganho' ? 'Nova categoria de ganhos' : 'Nova categoria de despesas');
+  formCat.querySelector('#cIcone').value = c ? c.icone : '';
+  formCat.querySelector('#cNome').value = c ? c.nome : '';
+  const usadas = new Set(catsDe(catTipo).map(x => x.cor));
+  const cor = c ? c.cor : (PALETA.find(x => !usadas.has(x)) || PALETA[0]);
+  const lista = PALETA.includes(cor) ? PALETA : [cor, ...PALETA];
+  $('#cCores').innerHTML = lista.map((x, i) => `<input type="radio" name="cor" id="cor${i}" value="${x}"${x === cor ? ' checked' : ''}><label for="cor${i}" style="background:${x}" title="${x}"></label>`).join('');
+  marcarEmoji(); mostrarErros(formCat, {});
+  $('#catsVista').hidden = true; formCat.hidden = false;
+  formCat.querySelector(c ? '#cNome' : '#cIcone').focus();
+}
+function marcarEmoji() {
+  const atual = formCat.querySelector('#cIcone').value;
+  $$('#cGrelha button').forEach(b => b.classList.toggle('sel', b.textContent === atual));
+}
+$('#cGrelha').innerHTML = EMOJIS.map(e => `<button type="button" aria-label="Emoji ${e}">${e}</button>`).join('');
+$('#cGrelha').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; formCat.querySelector('#cIcone').value = b.textContent; marcarEmoji(); });
+$('#cIcone').addEventListener('input', e => { e.target.value = primeiroGrafema(e.target.value); marcarEmoji(); });
+$('#btnCatCancelar').addEventListener('click', () => { formCat.hidden = true; $('#catsVista').hidden = false; });
+
+formCat.addEventListener('submit', e => {
+  e.preventDefault();
+  const erros = {};
+  const icone = primeiroGrafema($('#cIcone').value), nome = $('#cNome').value.trim(), cor = (formCat.elements.cor && formCat.elements.cor.value) || '#8a93a1';
+  if (!icone || !/\p{Extended_Pictographic}/u.test(icone)) erros.icone = 'Escolha ou escreva um emoji.';
+  if (!nome) erros.nome = 'Escreva um nome.';
+  else if (estado.categorias.some(c => c.tipo === catTipo && c.id !== catEditId && c.nome.toLowerCase() === nome.toLowerCase())) erros.nome = 'Já existe uma categoria com este nome.';
+  if (Object.keys(erros).length) return mostrarErros(formCat, erros);
+  const t = agora();
+  if (catEditId) {
+    const c = estado.categorias.find(x => x.id === catEditId);
+    if (c.nome !== nome) {   // renomear: acompanha os movimentos e regras que usam a categoria
+      [...estado.movs, ...estado.regras].forEach(x => { if (x.tipo === c.tipo && x.cat === c.nome) { x.cat = nome; x.alt = t; } });
+    }
+    Object.assign(c, { nome, icone, cor, alt: t });
+    toast('Categoria atualizada');
+  } else {
+    estado.categorias.push({ id: 'cat-' + novoId(), tipo: catTipo, nome, icone, cor, fixa: false, alt: t });
+    toast('Categoria criada');
+  }
+  guardar(); renderTudo(); renderCats();
+  formCat.hidden = true; $('#catsVista').hidden = false;
+});
+
+$('#catsItens').addEventListener('click', async e => {
+  const b = e.target.closest('[data-acao]'); if (!b) return;
+  const c = estado.categorias.find(x => x.id === b.closest('[data-cat]').dataset.cat); if (!c) return;
+  if (b.dataset.acao === 'editar') return abrirFormCat(c.id);
+  const n = usosCat(c), destino = catPadrao(c.tipo);
+  const aviso = n ? `${n} movimento(s) ou regra(s) com esta categoria passam para «${destino}».` : 'Nenhum movimento usa esta categoria.';
+  if (!await confirmar('Eliminar categoria?', `A categoria «${c.nome}» será eliminada. ${aviso}`, 'Eliminar')) return;
+  const t = agora();
+  [...estado.movs, ...estado.regras].forEach(x => { if (x.tipo === c.tipo && x.cat === c.nome) { x.cat = destino; x.alt = t; } });
+  estado.categorias = estado.categorias.filter(x => x.id !== c.id);
+  estado.apagados[c.id] = t;
+  guardar(); renderTudo(); renderCats(); toast('Categoria eliminada');
+});
+
+// Ao fechar: atualiza as listas de categorias dos formulários que estejam abertos por baixo
+dlgCats.addEventListener('close', () => {
+  for (const [dlg, f] of [[$('#dlgMov'), formMov], [$('#dlgRegra'), formRegra]]) {
+    if (!dlg.open) continue;
+    const atual = f.elements.cat.value;
+    preencherCategorias(f.elements.cat, f.elements.tipo.value, catsDe(f.elements.tipo.value).some(c => c.nome === atual) ? atual : null);
+  }
+});
+
 /* =========================================================
    10. EXPORTAR / IMPORTAR / APAGAR
    ========================================================= */
 $('#btnExportar').addEventListener('click', () => {
-  const conteudo = JSON.stringify({ versao: 2, exportadoEm: new Date().toISOString(), movs: estado.movs, regras: estado.regras, apagados: estado.apagados }, null, 2);
+  const conteudo = JSON.stringify({ versao: 3, exportadoEm: new Date().toISOString(), movs: estado.movs, regras: estado.regras, categorias: estado.categorias, apagados: estado.apagados }, null, 2);
   const url = URL.createObjectURL(new Blob([conteudo], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url; a.download = `financas-${hoje()}.json`;
@@ -1091,7 +1276,8 @@ $('#ficheiro').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = '';
   if (!f) return;
   let res;
-  try { res = normalizar(JSON.parse(await f.text())); } catch (err) { return toast('Ficheiro inválido: não é um JSON legível.'); }
+  let bruto;
+  try { bruto = JSON.parse(await f.text()); res = normalizar(bruto); } catch (err) { return toast('Ficheiro inválido: não é um JSON legível.'); }
   const { estado: novo, ignorados } = res;
   if (!novo.movs.length && !novo.regras.length) return toast('O ficheiro não contém movimentos nem regras válidos.');
   const msg = `Vai substituir os dados atuais por ${novo.movs.length} movimento(s) e ${novo.regras.length} regra(s)` +
@@ -1100,18 +1286,22 @@ $('#ficheiro').addEventListener('change', async e => {
   // Com sincronização: traz primeiro o que estiver no Dropbox, para também o poder substituir
   if (ligado()) { try { await sincronizar(); } catch (e) { /* segue com os dados locais */ } }
   const t = agora();
-  const ficam = new Set([...novo.movs, ...novo.regras].map(x => x.id));
+  // ficheiros sem categorias (versões antigas) mantêm as categorias atuais
+  const comCats = Array.isArray(bruto.categorias);
+  if (!comCats) novo.categorias = estado.categorias;
+  const lotes = comCats ? [novo.movs, novo.regras, novo.categorias] : [novo.movs, novo.regras];
+  const ficam = new Set(lotes.flat().map(x => x.id));
   const apagados = { ...estado.apagados };
-  for (const x of [...estado.movs, ...estado.regras]) if (!ficam.has(x.id)) apagados[x.id] = t;
-  [...novo.movs, ...novo.regras].forEach(x => { x.alt = t + 1; });   // os importados prevalecem
-  estado = { movs: novo.movs, regras: novo.regras, apagados };
+  for (const x of [estado.movs, estado.regras, ...(comCats ? [estado.categorias] : [])].flat()) if (!ficam.has(x.id)) apagados[x.id] = t;
+  lotes.flat().forEach(x => { x.alt = t + 1; });   // os importados prevalecem
+  estado = { movs: novo.movs, regras: novo.regras, apagados, categorias: novo.categorias };
   aplicarRecorrentes(); guardar(); renderTudo(); toast('Dados importados');
 });
 $('#btnApagar').addEventListener('click', async () => {
   if (!await confirmar('Apagar todos os dados?', 'Todos os movimentos e regras serão eliminados' + (ligado() ? ', também nos outros dispositivos sincronizados' : '') + '. Esta ação não pode ser desfeita (exporte uma cópia antes, se precisar).', 'Apagar tudo')) return;
   const t = agora(), apagados = { ...estado.apagados };
   [...estado.movs, ...estado.regras].forEach(x => { apagados[x.id] = t; });
-  estado = { movs: [], regras: [], apagados }; guardar(); renderTudo(); toast('Dados apagados');
+  estado = { movs: [], regras: [], apagados, categorias: estado.categorias }; guardar(); renderTudo(); toast('Dados apagados');
 });
 
 /* =========================================================
@@ -1161,8 +1351,20 @@ function fundir(a, b) {
       const p = [x.processadoAte, y.processadoAte].filter(Boolean).sort().pop();
       v.processadoAte = p || null;
     }),
+    categorias: fundirCategorias(juntar(a.categorias, b.categorias), apagados),
     apagados
   };
+}
+// Duas categorias com o mesmo nome (criadas em dispositivos diferentes) ficam numa só: mantém-se a de menor id
+function fundirCategorias(lista, apagados) {
+  const vistos = new Map(), res = [];
+  for (const c of [...lista].sort((x, y) => x.id.localeCompare(y.id))) {
+    const k = c.tipo + '|' + c.nome.toLowerCase();
+    if (vistos.has(k)) { apagados[c.id] = Math.max(apagados[c.id] || 0, agora()); continue; }
+    vistos.set(k, c); res.push(c);
+  }
+  garantirFixas(res);
+  return res;
 }
 
 // Remove movimentos automáticos repetidos (dados antigos, de antes dos ids fixos)
@@ -1182,7 +1384,7 @@ function canonico(e) {
   const porId = (a, b) => a.id.localeCompare(b.id);
   const apagados = {};
   Object.keys(n.apagados).sort().forEach(k => { apagados[k] = n.apagados[k]; });
-  return JSON.stringify({ versao: 2, movs: n.movs.sort(porId), regras: n.regras.sort(porId), apagados });
+  return JSON.stringify({ versao: 3, movs: n.movs.sort(porId), regras: n.regras.sort(porId), categorias: n.categorias.sort(porId), apagados });
 }
 
 // --- Autorização (OAuth 2 com PKCE) ---

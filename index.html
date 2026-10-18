@@ -111,13 +111,17 @@ button { cursor: pointer; }
 .ac-caixa { position: relative; }
 .sugestoes { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; list-style: none; margin: 0; padding: 4px;
              background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-md);
-             max-height: 250px; overflow: auto; }
+             /* sem altura máxima nem scroll: mostra todas as sugestões, mesmo que saiam dos limites da janela */ }
 .sugestoes[hidden] { display: none; }
-.sugestoes li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border-radius: 9px; cursor: pointer; }
+.sugestoes.acima { top: auto; bottom: calc(100% + 4px); }   /* se não houver espaço por baixo, abre para cima */
+/* A janela de movimento não corta a lista de sugestões (nem mostra barra de scroll). Em ecrãs muito baixos volta a poder rolar. */
+#dlgMov { overflow: visible; }
+@media (max-height: 560px) { #dlgMov { overflow: auto; } }
+.sugestoes li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px; border-radius: 9px; cursor: pointer; }
 .sugestoes li[aria-selected="true"], .sugestoes li:hover { background: var(--surface-2); }
 .sugestoes .sg-t { min-width: 0; }
 .sugestoes .sg-t b { display: block; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sugestoes .sg-t small { color: var(--muted); font-size: 12px; }
+.sugestoes .sg-t small { color: var(--muted); font-size: 12px; line-height: 1.25; display: block; }
 .sugestoes .sg-v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); }
 /* Categorias */
 .rotulo-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
@@ -1091,6 +1095,10 @@ function atualizarSugestoes() {
   listaSug.innerHTML = sugestoes.map((m, i) => `<li role="option" id="sug${i}" data-i="${i}" aria-selected="false">
       <span class="sg-t"><b>${esc(m.desc)}</b><small>${esc(m.cat)}</small></span><span class="sg-v">${fmtEUR(m.valor)}</span></li>`).join('');
   listaSug.hidden = false; campoDesc.setAttribute('aria-expanded', 'true'); sugAtiva = -1;
+  // abre para baixo; se não couber no ecrã e houver mais espaço por cima, abre para cima
+  listaSug.classList.remove('acima');
+  const r = listaSug.getBoundingClientRect(), campo = campoDesc.getBoundingClientRect();
+  if (r.bottom > innerHeight - 8 && campo.top > innerHeight - campo.bottom) listaSug.classList.add('acima');
 }
 function escolherSugestao(m) {
   campoDesc.value = m.desc;

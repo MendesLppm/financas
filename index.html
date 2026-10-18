@@ -107,6 +107,18 @@ button { cursor: pointer; }
 .estado-sync.a i { background: var(--accent); animation: pulsar 1.1s infinite; }
 .pilha { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 6px; }
 .dlg .txt.peq { font-size: 13px; margin-bottom: 12px; }
+/* Sugestões de descrição (autopreenchimento) */
+.ac-caixa { position: relative; }
+.sugestoes { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; list-style: none; margin: 0; padding: 4px;
+             background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-md);
+             max-height: 250px; overflow: auto; }
+.sugestoes[hidden] { display: none; }
+.sugestoes li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border-radius: 9px; cursor: pointer; }
+.sugestoes li[aria-selected="true"], .sugestoes li:hover { background: var(--surface-2); }
+.sugestoes .sg-t { min-width: 0; }
+.sugestoes .sg-t b { display: block; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sugestoes .sg-t small { color: var(--muted); font-size: 12px; }
+.sugestoes .sg-v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); }
 /* Categorias */
 .rotulo-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 13px; font-weight: 550; text-decoration: underline; text-underline-offset: 2px; }
@@ -410,7 +422,12 @@ dialog::backdrop { background: rgba(8, 10, 14, .5); backdrop-filter: blur(3px); 
       <div class="valor-input"><input type="text" id="mValor" name="valor" inputmode="decimal" autocomplete="off" placeholder="0,00"><span>€</span></div>
       <small class="erro"></small></div>
     <div class="campo" data-campo="desc"><label for="mDesc">Descrição</label>
-      <input type="text" id="mDesc" name="desc" maxlength="80" autocomplete="off" placeholder="Ex.: Supermercado"><small class="erro"></small></div>
+      <div class="ac-caixa">
+        <input type="text" id="mDesc" name="desc" maxlength="80" autocomplete="off" placeholder="Ex.: Supermercado"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugDesc">
+        <ul class="sugestoes" id="sugDesc" role="listbox" aria-label="Sugestões de movimentos anteriores" hidden></ul>
+      </div>
+      <small class="erro"></small></div>
     <div class="duo">
       <div class="campo" data-campo="cat"><div class="rotulo-linha"><label for="mCat">Categoria</label><button type="button" class="linkbtn" data-gerir="mov">Gerir</button></div><select id="mCat" name="cat"></select><small class="erro"></small></div>
       <div class="campo" data-campo="data"><label for="mData">Data</label><input type="date" id="mData" name="data"><small class="erro"></small></div>
@@ -657,7 +674,8 @@ function normalizar(bruto) {
     movs.push({ id: idUnico(m.id), tipo: m.tipo, valor: arred(v), desc: m.desc.trim().slice(0, 80),
       cat: String(m.cat || catPadrao(m.tipo)).slice(0, 40), data: m.data,
       regraId: m.regraId ? String(m.regraId) : null, ocorrencia: dataValida(m.ocorrencia) ? m.ocorrencia : null,
-      alt: Number(m.alt) > 0 ? Number(m.alt) : 0 });
+      alt: Number(m.alt) > 0 ? Number(m.alt) : 0,
+      criado: Number(m.criado) > 0 ? Number(m.criado) : 0 });   // quando foi adicionado (para ordenar movimentos do mesmo dia)
   }
   for (const r of (Array.isArray(bruto && bruto.regras) ? bruto.regras : [])) {
     const v = Number(r && r.valor);
@@ -757,7 +775,7 @@ function aplicarRecorrentes() {
       const id = `auto-${r.id}-${o}`;
       const existe = estado.apagados[id] || estado.movs.some(m => m.id === id || (m.regraId === r.id && m.ocorrencia === o));
       if (!existe) {
-        estado.movs.push({ id, tipo: r.tipo, valor: r.valor, desc: r.desc, cat: r.cat, data: o, regraId: r.id, ocorrencia: o, alt: 0 });
+        estado.movs.push({ id, tipo: r.tipo, valor: r.valor, desc: r.desc, cat: r.cat, data: o, regraId: r.id, ocorrencia: o, alt: 0, criado: agora() });
         criados++;
       }
       r.processadoAte = o;
@@ -775,8 +793,16 @@ function resumoMes(ym) {
   for (const m of estado.movs) if (mesDe(m.data) === ym) (m.tipo === 'ganho' ? (g += cents(m.valor)) : (d += cents(m.valor)));
   return { ganhos: g / 100, despesas: d / 100, saldo: (g - d) / 100 };
 }
+// Mais recentes primeiro: por data. Na mesma data, os manuais pela ordem em que foram adicionados (o último adicionado no topo)
+// e, no fim do dia, os movimentos automáticos: são os primeiros do dia (os mais antigos), por isso ficam em último.
+// Movimentos antigos, sem data de criação, ficam depois e mantêm a ordem em que estavam guardados.
+const eAutomatico = m => !!m.ocorrencia;
 function ordenarMovs(lista) {
-  return [...lista].sort((a, b) => b.data.localeCompare(a.data) || 0);
+  const pos = new Map(estado.movs.map((m, i) => [m.id, i]));
+  return [...lista].sort((a, b) => b.data.localeCompare(a.data)
+    || (eAutomatico(a) - eAutomatico(b))
+    || (b.criado || 0) - (a.criado || 0)
+    || pos.get(b.id) - pos.get(a.id));
 }
 
 /* =========================================================
@@ -1025,10 +1051,69 @@ function abrirMov(id) {
   formMov.elements.desc.value = m ? m.desc : '';
   formMov.elements.data.value = m ? m.data : hoje();
   mostrarErros(formMov, {});
+  fecharSugestoes();
   $('#dlgMov').showModal();
   if (!m) formMov.elements.valor.focus();
 }
-$$('input[name=tipo]', formMov).forEach(r => r.addEventListener('change', () => preencherCategorias(formMov.elements.cat, formMov.elements.tipo.value)));
+$$('input[name=tipo]', formMov).forEach(r => r.addEventListener('change', () => { preencherCategorias(formMov.elements.cat, formMov.elements.tipo.value); atualizarSugestoes(); }));
+
+/* ---- Sugestões de descrição: propõe movimentos anteriores do mesmo tipo e preenche a categoria ---- */
+const campoDesc = formMov.elements.desc, listaSug = $('#sugDesc');
+let sugestoes = [], sugAtiva = -1, tFecharSug = 0;
+const semAcentos = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+// Movimentos anteriores cuja descrição corresponde ao texto (começa por… primeiro, depois contém…), do mais recente para o mais antigo
+function procurarSugestoes(texto, tipo, ignorarId) {
+  const q = semAcentos(texto.trim());
+  if (!q) return [];
+  const recentes = estado.movs.filter(m => m.tipo === tipo && m.id !== ignorarId)
+    .sort((a, b) => b.data.localeCompare(a.data) || (b.criado || 0) - (a.criado || 0));
+  const unicos = new Map();                        // uma sugestão por descrição: a do movimento mais recente
+  for (const m of recentes) { const k = semAcentos(m.desc.trim()); if (!unicos.has(k)) unicos.set(k, m); }
+  const inicio = [], contem = [];
+  for (const [k, m] of unicos) { if (k.startsWith(q)) inicio.push(m); else if (k.includes(q)) contem.push(m); }
+  return [...inicio, ...contem].slice(0, 5);
+}
+function fecharSugestoes() {
+  sugestoes = []; sugAtiva = -1; listaSug.hidden = true; listaSug.innerHTML = '';
+  campoDesc.setAttribute('aria-expanded', 'false'); campoDesc.removeAttribute('aria-activedescendant');
+}
+function marcarSugestao(i) {
+  sugAtiva = i;
+  $$('li', listaSug).forEach((li, j) => li.setAttribute('aria-selected', String(j === i)));
+  if (i >= 0) { campoDesc.setAttribute('aria-activedescendant', 'sug' + i); $$('li', listaSug)[i].scrollIntoView({ block: 'nearest' }); }
+  else campoDesc.removeAttribute('aria-activedescendant');
+}
+function atualizarSugestoes() {
+  clearTimeout(tFecharSug);   // um "blur" anterior não deve fechar a lista nova
+  sugestoes = procurarSugestoes(campoDesc.value, formMov.elements.tipo.value, editMovId);
+  if (!sugestoes.length) return fecharSugestoes();
+  listaSug.innerHTML = sugestoes.map((m, i) => `<li role="option" id="sug${i}" data-i="${i}" aria-selected="false">
+      <span class="sg-t"><b>${esc(m.desc)}</b><small>${esc(m.cat)}</small></span><span class="sg-v">${fmtEUR(m.valor)}</span></li>`).join('');
+  listaSug.hidden = false; campoDesc.setAttribute('aria-expanded', 'true'); sugAtiva = -1;
+}
+function escolherSugestao(m) {
+  campoDesc.value = m.desc;
+  const tipo = formMov.elements.tipo.value;
+  if (catsDe(tipo).some(c => c.nome === m.cat)) formMov.elements.cat.value = m.cat;        // preenche a categoria
+  if (!formMov.elements.valor.value.trim()) formMov.elements.valor.value = fmtNumInput(m.valor);   // e o valor, se ainda estiver vazio
+  campoDesc.closest('.campo').classList.remove('invalido'); $('.erro', campoDesc.closest('.campo')).textContent = '';
+  fecharSugestoes();
+}
+campoDesc.addEventListener('input', atualizarSugestoes);
+campoDesc.addEventListener('blur', () => { tFecharSug = setTimeout(fecharSugestoes, 120); });
+campoDesc.addEventListener('keydown', e => {
+  if (listaSug.hidden) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); marcarSugestao((sugAtiva + 1) % sugestoes.length); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); marcarSugestao(sugAtiva <= 0 ? sugestoes.length - 1 : sugAtiva - 1); }
+  else if (e.key === 'Enter' && sugAtiva >= 0) { e.preventDefault(); escolherSugestao(sugestoes[sugAtiva]); }
+  else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fecharSugestoes(); }
+});
+// pointerdown (e não click) para o campo não perder o foco antes de escolher
+listaSug.addEventListener('pointerdown', e => {
+  const li = e.target.closest('li'); if (!li) return;
+  e.preventDefault(); escolherSugestao(sugestoes[Number(li.dataset.i)]);
+});
 
 formMov.addEventListener('submit', e => {
   e.preventDefault();
@@ -1046,7 +1131,7 @@ formMov.addEventListener('submit', e => {
     toast('Movimento atualizado');
   } else {
     const id = novoId();
-    estado.movs.push({ id, ...dados, regraId: null, ocorrencia: null, alt: agora() });
+    estado.movs.push({ id, ...dados, regraId: null, ocorrencia: null, alt: agora(), criado: agora() });
     novoItemId = id;
     toast(dados.tipo === 'ganho' ? 'Ganho adicionado' : 'Despesa adicionada');
   }
